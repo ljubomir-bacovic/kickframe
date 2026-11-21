@@ -530,4 +530,474 @@ class Subtle(Style):
         ctx.set_source(g); ctx.paint()
 
 
-STYLES = {cls.name: cls for cls in (Bold, Geometric, Atom, Tunnel, Subtle)}
+def vignette(ctx, cx, cy, r0=380, r1=1150, a=0.6):
+    g = cairo.RadialGradient(cx, cy, r0, cx, cy, r1)
+    g.add_color_stop_rgba(0, 0, 0, 0, 0)
+    g.add_color_stop_rgba(1, 0, 0, 0, a)
+    ctx.set_source(g)
+    ctx.paint()
+
+
+class Horizon(Style):
+    """Perspective floor rushing toward a polygon sun on the horizon; kicks surge the travel."""
+    name = "horizon"
+    SUN_SIDES = [8, 6, 12, 4]
+    H_CAM = 300.0  # camera height: row at depth d sits H_CAM/d below the horizon
+
+    def prepare(self):
+        c = self.c
+        bps = c.bpm / 60.0
+        ph = c.beat % 1.0
+        v = np.where(c.K > 0.5, (0.4 + 0.8 * c.I) * (0.4 + 1.4 * np.exp(-ph * 5)), 0.15 + 0.2 * c.mid)
+        self.z = np.cumsum(v * bps / c.fps)  # distance travelled, in floor rows
+        self.rot = np.cumsum(0.001 + 0.003 * c.I)
+
+    def floor(self, ctx, s, HY, sign, amount):
+        frac = self.z[s.f] % 1.0
+        for k in range(1, 81):
+            d = (k - frac) * 0.5
+            y = HY + sign * self.H_CAM / d
+            if not -10 < y < self.VH + 10:
+                continue
+            near = min(1.0, 2.0 / d)
+            a = ((0.12 + 0.45 * s.I) * min(1.0, 4.0 / d) + 0.4 * s.kick * near) * amount
+            ctx.set_line_width(1.0 + 1.2 * near * (0.5 + s.bass))
+            ctx.set_source_rgba(*INK, min(a, 1.0))
+            ctx.move_to(0, y); ctx.line_to(self.VW, y); ctx.stroke()
+        y0 = HY + sign * self.H_CAM / 40
+        y1 = self.VH if sign > 0 else 0
+        sway = 70 * math.sin(s.t * 0.07)
+        ctx.set_line_width(1.0)
+        for j in range(-30, 31):
+            ctx.set_source_rgba(*INK, (0.16 + 0.3 * s.I) * max(0.0, 1 - abs(j) / 30) * amount)
+            xb = self.CX + j * 150 + sway
+            ctx.move_to(self.CX + (xb - self.CX) * (y0 - HY) / (y1 - HY), y0)
+            ctx.line_to(xb, y1)
+            ctx.stroke()
+
+    def draw(self, ctx, s):
+        HY = self.CY + 60
+        rot = self.rot[s.f]
+        self.layer_flash(ctx, s, 0.5)
+        self.floor(ctx, s, HY, 1, 1.0)
+        # sun, setting behind the horizon
+        n = self.SUN_SIDES[(s.bar // 16) % len(self.SUN_SIDES)]
+        R = 230 * (1 + 0.05 * s.kick)
+        sx, sy = self.CX, HY - 170
+        if s.pk > 0:  # ceiling in peaks turns the floor into a corridor
+            ctx.save()
+            ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+            ctx.rectangle(0, 0, self.VW, HY)
+            poly(ctx, n, R * 1.08, rot, sx, sy)
+            ctx.clip()
+            ctx.set_fill_rule(cairo.FILL_RULE_WINDING)
+            self.floor(ctx, s, HY, -1, 0.45 * s.pk)
+            ctx.restore()
+        col = RED if s.peak else INK
+        ctx.save()
+        ctx.rectangle(0, 0, self.VW, HY); ctx.clip()
+        ctx.set_line_width(2 + 1.5 * s.kick)
+        ctx.set_source_rgba(*col, 0.55 + 0.45 * s.kick)
+        poly(ctx, n, R, rot, sx, sy); ctx.stroke()
+        poly(ctx, n, R, rot, sx, sy); ctx.clip()
+        step = 16
+        for i in range(-1, int(2 * R / step) + 2):
+            y = sy - R + (i + s.ph) * step
+            depth = (y - (sy - R)) / (2 * R)
+            ctx.set_line_width(1.0 + 2.5 * depth)
+            ctx.set_source_rgba(*col, 0.12 + 0.5 * depth * (0.5 + 0.5 * s.I))
+            ctx.move_to(sx - R, y); ctx.line_to(sx + R, y); ctx.stroke()
+        ctx.restore()
+        if s.K < 0.5:  # breakdown: echoes drift out from the sun
+            ctx.save(); ctx.rectangle(0, 0, self.VW, HY); ctx.clip()
+            for i in range(4):
+                e = (s.t * 0.15 + i / 4) % 1.0
+                ctx.set_line_width(1)
+                ctx.set_source_rgba(*INK, 0.35 * (1 - e) * (0.3 + s.mid) * (1 - s.K))
+                poly(ctx, n, R * (1.1 + 1.4 * e), rot * (1 + i * 0.2), sx, sy); ctx.stroke()
+            ctx.restore()
+        # horizon line with hat ticks
+        ctx.set_line_width(1.5)
+        ctx.set_source_rgba(*INK, 0.7)
+        ctx.move_to(0, HY); ctx.line_to(self.VW, HY); ctx.stroke()
+        ctx.set_line_width(1.5)
+        ctx.set_source_rgba(*INK, 0.2 + 0.6 * s.hat)
+        x = self.CX % 48
+        while x < self.VW:
+            ctx.move_to(x, HY); ctx.line_to(x, HY - 4 - 16 * s.hat * (0.4 + 0.6 * math.sin(x * 0.05) ** 2))
+            x += 48
+        ctx.stroke()
+        vignette(ctx, self.CX, self.CY, 420, 1200, 0.55)
+        self.layer_hud(ctx, s)
+
+
+class Scope(Style):
+    """Radial oscilloscope: a closed trace shaped by bass, mids and hats, leaving fading echoes."""
+    name = "scope"
+    LOBES = [(3, 8, 24), (4, 10, 32), (5, 7, 28), (6, 12, 36)]  # bass, mid, hat lobes per phrase
+    R0 = 250.0
+
+    def prepare(self):
+        self.rot = np.cumsum(0.002 + 0.006 * self.c.I)
+
+    def trace(self, ctx, g, lobes, scale):
+        st = self.state(g)
+        rot = self.rot[g]
+        nb, nm, nh = lobes
+        base = self.R0 * (1 + 0.15 * st.kick)
+        for j in range(361):
+            th = TAU * j / 360
+            r = (base + 80 * st.bass * math.sin(nb * th + rot) + 35 * st.mid * math.sin(nm * th - 1.7 * rot)
+                 + 18 * st.hat * math.sin(nh * th + 3 * rot)) * scale
+            x, y = self.CX + r * math.cos(th), self.CY + r * math.sin(th)
+            ctx.line_to(x, y) if j else ctx.move_to(x, y)
+        ctx.close_path()
+
+    def draw(self, ctx, s):
+        lobes = self.LOBES[(s.bar // 16) % len(self.LOBES)]
+        self.layer_flash(ctx, s, 0.5)
+        # graticule
+        ctx.set_line_width(1)
+        ctx.set_source_rgba(*INK, 0.06 + 0.04 * s.I)
+        for r in range(100, 1100, 100):
+            ctx.new_sub_path(); ctx.arc(self.CX, self.CY, r, 0, TAU)
+        ctx.move_to(0, self.CY); ctx.line_to(self.VW, self.CY)
+        ctx.move_to(self.CX, 0); ctx.line_to(self.CX, self.VH)
+        ctx.stroke()
+        if s.pk > 0:
+            a, b = Geometric.LISS[(s.bar // 16) % len(Geometric.LISS)]
+            self.layer_lissajous(ctx, s, a, b, s.pk)
+        n_echo = 3 + int(9 * s.I)
+        for k in range(n_echo, 0, -1):
+            ctx.set_line_width(1.2)
+            ctx.set_source_rgba(*INK, 0.4 * (1 - k / (n_echo + 1)) ** 1.5 * (0.4 + 0.6 * s.I))
+            self.trace(ctx, max(0, s.f - 2 * k), lobes, 1 + 0.045 * k)
+            ctx.stroke()
+        red = s.peak and s.bib == 0
+        ctx.set_line_width(1.8 + 2.0 * s.kick + s.bass)
+        ctx.set_source_rgba(*(RED if red else INK), 0.6 + 0.4 * s.kick)
+        self.trace(ctx, s.f, lobes, 1.0)
+        ctx.stroke()
+        self.layer_ticks(ctx, s, self.rot[s.f], R=490)
+        self.layer_brackets(ctx, s, RED if red else INK)
+        self.layer_hud(ctx, s, f"   {lobes[0]}:{lobes[1]}:{lobes[2]}")
+
+
+class Field(Style):
+    """A lattice of crosses; every kick sends a wave from the centre that lifts and turns them."""
+    name = "field"
+    SP = 60.0
+
+    def prepare(self):
+        self.rot = np.cumsum(0.0008 + 0.002 * self.c.I)
+        nx, ny = int(self.VW / self.SP / 2) + 1, int(self.VH / self.SP / 2) + 1
+        ii, jj = np.meshgrid(np.arange(-nx, nx + 1), np.arange(-ny, ny + 1))
+        self.ii, self.jj = ii.ravel(), jj.ravel()
+        self.gx = self.CX + self.ii * self.SP
+        self.gy = self.CY + self.jj * self.SP
+        self.d = np.hypot(self.gx - self.CX, self.gy - self.CY)
+
+    def draw(self, ctx, s):
+        d = self.d
+        w = np.zeros_like(d)
+        if s.K > 0.3:
+            for back in (0, 1):  # this beat's wave and the last one, still travelling
+                p = s.ph + back
+                w += s.K * (1 - p / 2) ** 1.5 * np.exp(-((d - (40 + p * 620)) / 70) ** 2)
+        w += (1 - s.K) * 0.35 * s.mid * (0.5 + 0.5 * np.sin(d / 90 - s.t * 1.8))
+        reach = 250 + 1100 * s.I
+        vis = 0.25 + 0.75 * np.clip((reach - d) / 150, 0, 1)
+        alpha = np.minimum((0.2 + 0.25 * s.I) * vis + 0.7 * w, 1.0)
+        size = 8 + 14 * w + 3 * s.bass
+        sixteenth = int(math.floor(s.beat * 4))
+        spark = ((self.ii * 7919 + self.jj * 104729 + sixteenth * 1299709) % 997) / 997.0 < 0.06 * s.hat
+        alpha = np.where(spark, 0.9, alpha)
+        size = np.where(spark, size + 4, size)
+        red = (w > 0.5) & (s.peak and s.bib == 0)
+        ang = self.rot[s.f] + w * math.pi / 4
+        self.layer_flash(ctx, s, 0.5)
+        ctx.set_line_width(1.8 + 0.8 * s.bass)
+        q = np.round(alpha * 20).astype(int)
+        for is_red in (False, True):
+            for level in np.unique(q[red == is_red]):
+                sel = np.nonzero((q == level) & (red == is_red))[0]
+                if level == 0 or len(sel) == 0:
+                    continue
+                ctx.set_source_rgba(*(RED if is_red else INK), level / 20)
+                for i in sel:
+                    x, y, r, a = self.gx[i], self.gy[i], size[i], ang[i]
+                    c, sn = r * math.cos(a), r * math.sin(a)
+                    ctx.move_to(x - c, y - sn); ctx.line_to(x + c, y + sn)
+                    ctx.move_to(x + sn, y - c); ctx.line_to(x - sn, y + c)
+                ctx.stroke()
+        vignette(ctx, self.CX, self.CY, 450, 1200, 0.5)
+        self.layer_brackets(ctx, s, RED if (s.peak and s.bib == 0) else INK)
+        self.layer_hud(ctx, s)
+
+
+class Sphere(Style):
+    """Wireframe globe turning a step per beat; a scan line sweeps it on each kick, red equator in peaks."""
+    name = "sphere"
+    N = 96  # points per ring
+
+    def prepare(self):
+        self.yaw = stepped_rotation(self.c, 15)
+        self.pitch = 0.35 + 0.2 * np.sin(np.cumsum(0.003 + 0.004 * self.c.I))
+
+    def ring(self, ctx, pts, R, a_front, a_back, col, width):
+        """pts: (N, 3) unit-sphere points after rotation; front half bright, back half dim."""
+        x = self.CX + R * pts[:, 0]
+        y = self.CY - R * pts[:, 1]
+        z = pts[:, 2]
+        for front, a in ((False, a_back), (True, a_front)):
+            if a <= 0:
+                continue
+            for j in range(len(pts) - 1):
+                if (z[j] + z[j + 1] >= 0) == front:
+                    ctx.move_to(x[j], y[j]); ctx.line_to(x[j + 1], y[j + 1])
+            ctx.set_line_width(width if front else 1.0)
+            ctx.set_source_rgba(*col, min(a, 1.0))
+            ctx.stroke()
+
+    def view(self, p, yaw, pitch):
+        x, y, z = p[:, 0], p[:, 1], p[:, 2]
+        x, z = x * math.cos(yaw) + z * math.sin(yaw), -x * math.sin(yaw) + z * math.cos(yaw)
+        y, z = y * math.cos(pitch) - z * math.sin(pitch), y * math.sin(pitch) + z * math.cos(pitch)
+        return np.stack([x, y, z], 1)
+
+    def draw(self, ctx, s):
+        yaw, pitch = self.yaw[s.f], self.pitch[s.f]
+        a = np.linspace(0, TAU, self.N + 1)
+        R = 330 * (1 + 0.06 * s.kick) * (1 + 0.04 * s.mid * (1 - s.K))
+        self.layer_flash(ctx, s, 0.5)
+        self.layer_grid(ctx, s, "tri")
+        self.layer_ripples(ctx, s)
+        af = 0.25 + 0.3 * s.I + 0.35 * s.kick
+        ab = 0.07 + 0.06 * s.I
+        lw = 1.2 + 1.2 * s.kick + 0.8 * s.bass
+        m = 2 * int(round(3 + 6 * s.I))
+        for k in range(m):  # meridians: great circles through the poles
+            lon = math.pi * k / m
+            p = np.stack([np.cos(a) * math.sin(lon), np.sin(a), np.cos(a) * math.cos(lon)], 1)
+            self.ring(ctx, self.view(p, yaw, pitch), R, af, ab, INK, lw)
+        n_par = 3 + 2 * int(round(2 * s.I))
+        for j in range(1, n_par + 1):  # parallels; the middle one is the equator
+            lat = math.pi * j / (n_par + 1) - math.pi / 2
+            p = np.stack([math.cos(lat) * np.sin(a), np.full_like(a, math.sin(lat)), math.cos(lat) * np.cos(a)], 1)
+            eq = j == (n_par + 1) // 2 and s.peak
+            self.ring(ctx, self.view(p, yaw, pitch), R, 0.8 if eq else af, ab, RED if eq else INK,
+                      lw + (1 if eq else 0))
+        if s.K > 0.3:  # scan line from pole to pole on every beat
+            lat = math.pi / 2 - ease(s.ph) * math.pi
+            p = np.stack([math.cos(lat) * np.sin(a), np.full_like(a, math.sin(lat)), math.cos(lat) * np.cos(a)], 1)
+            self.ring(ctx, self.view(p, yaw, pitch), R * 1.01, 0.9 * s.kick + 0.2, 0.1, INK, 2.5)
+        if s.I > 0.5:  # tilted orbit with three markers
+            ao = min(1.0, (s.I - 0.5) / 0.15)
+            p = np.stack([1.45 * np.cos(a), np.zeros_like(a), 1.45 * np.sin(a)], 1)
+            tilt = 1.1
+            p = np.stack([p[:, 0], -p[:, 2] * math.sin(tilt), p[:, 2] * math.cos(tilt)], 1)
+            q = self.view(p, -yaw * 0.5, pitch)
+            self.ring(ctx, q, R, 0.4 * ao, 0.12 * ao, INK, 1.2)
+            for i in range(3):
+                idx = int((s.beat / 8 + i / 3) % 1.0 * self.N)
+                x, y = self.CX + R * q[idx, 0], self.CY - R * q[idx, 1]
+                ctx.set_line_width(1.5)
+                ctx.set_source_rgba(*(RED if (i == 0 and s.peak) else INK), (0.4 + 0.6 * (q[idx, 2] > 0)) * ao)
+                poly(ctx, 3, 10 + 6 * s.kick, yaw * 2 + i, x, y); ctx.stroke()
+        self.layer_ticks(ctx, s, yaw, R=520)
+        self.layer_brackets(ctx, s, RED if (s.peak and s.bib == 0) else INK)
+        self.layer_hud(ctx, s, f"   {m}x{n_par}")
+
+
+class Moire(Style):
+    """Two sets of concentric rings that slide apart on every kick; their interference blooms into moire."""
+    name = "moire"
+    SP = 16.0
+
+    def prepare(self):
+        self.rot = np.cumsum(0.0015 + 0.004 * self.c.I)
+
+    def rings(self, ctx, cx, cy, rmax, alpha, sides=0, rot=0.0):
+        ctx.set_line_width(1.5)
+        groups = {}  # rings sharing an alpha level go into one stroke
+        for i in range(1, int(1200 / self.SP) + 1):
+            r = i * self.SP
+            lvl = round(alpha * min(1.0, max(0.0, (rmax - r) / 200)) * 40)
+            if lvl > 0:
+                groups.setdefault(lvl, []).append(r)
+        for lvl, radii in groups.items():
+            for r in radii:
+                if sides:
+                    poly(ctx, sides, r, rot, cx, cy)
+                else:
+                    ctx.new_sub_path(); ctx.arc(cx, cy, r, 0, TAU)
+            ctx.set_source_rgba(*INK, lvl / 40)
+            ctx.stroke()
+
+    def draw(self, ctx, s):
+        rot = self.rot[s.f]
+        if s.K > 0.5:
+            off = 18 + 70 * s.I + 55 * s.kick
+        else:
+            off = 18 + 50 * s.mid * (0.5 + 0.5 * math.sin(s.t * 0.4))
+        dx, dy = off * math.cos(rot), off * math.sin(rot)
+        rmax = 380 + 850 * s.I
+        self.layer_flash(ctx, s, 0.5)
+        self.rings(ctx, self.CX + dx, self.CY + dy, rmax, 0.5)
+        b_alpha = 0.42 + 0.2 * s.hat
+        if s.K > 0.02:
+            self.rings(ctx, self.CX - dx, self.CY - dy, rmax, b_alpha * s.K)
+        if s.K < 0.98:  # breakdown: the second set turns into slowly rotating hexagons
+            self.rings(ctx, self.CX - dx, self.CY - dy, rmax, b_alpha * (1 - s.K), sides=6, rot=-rot * 2)
+        if s.pk > 0:  # red wavefront on every kick in peaks
+            ctx.set_line_width(2.5)
+            ctx.set_source_rgba(*RED, (1 - s.ph) * s.pk)
+            ctx.new_sub_path(); ctx.arc(self.CX, self.CY, 40 + ease(s.ph) * 900, 0, TAU); ctx.stroke()
+        vignette(ctx, self.CX, self.CY, 350, 1150, 0.65)
+        self.layer_hud(ctx, s)
+
+
+# -- fractals ----------------------------------------------------------------
+def tree_levels(cx, cy, arms, depth, length, ratio, spread, rot, r0=0.0, asym=0.0, grow=None):
+    """Radial binary tree: `arms` trunks from the centre, each forking in two per level.
+    spread: branch half-angle, a number or one value per level; grow: optional length factor per level.
+    Returns one (N, 4) array of segments (x0, y0, x1, y1) per level."""
+    a = rot + TAU * np.arange(arms) / arms
+    x, y = cx + r0 * np.cos(a), cy + r0 * np.sin(a)
+    out, L = [], length
+    for lvl in range(depth):
+        g = 1.0 if grow is None else grow[lvl]
+        x1, y1 = x + L * g * np.cos(a), y + L * g * np.sin(a)
+        out.append(np.stack([x, y, x1, y1], 1))
+        sp = spread[lvl] if np.ndim(spread) else spread
+        a = np.concatenate([a - sp * (1 + asym), a + sp * (1 - asym)])
+        x, y = np.concatenate([x1, x1]), np.concatenate([y1, y1])
+        L *= ratio
+    return out
+
+
+def sierpinski_holes(tris, min_size=0.0, bounds=None, max_depth=12):
+    """Subdivide (N, 3, 2) triangles Sierpinski-style. Returns [(holes (M, 3, 2), edge length)] per
+    level: each level adds only its inverted middle triangles, so drawing all levels plus the outer
+    triangles gives the whole fractal. bounds=(x0, y0, x1, y1) culls triangles outside the view."""
+    out = []
+    size = float(np.linalg.norm(tris[0, 1] - tris[0, 0]))
+    for _ in range(max_depth):
+        if not len(tris) or size / 2 < min_size:
+            break
+        v0, v1, v2 = tris[:, 0], tris[:, 1], tris[:, 2]
+        m01, m12, m20 = (v0 + v1) / 2, (v1 + v2) / 2, (v2 + v0) / 2
+        out.append((np.stack([m01, m12, m20], 1), size / 2))
+        tris = np.concatenate([np.stack([v0, m01, m20], 1), np.stack([m01, v1, m12], 1),
+                               np.stack([m20, m12, v2], 1)])
+        size /= 2
+        if bounds is not None:
+            mn, mx = tris.min(1), tris.max(1)
+            tris = tris[(mx[:, 0] >= bounds[0]) & (mn[:, 0] <= bounds[2]) &
+                        (mx[:, 1] >= bounds[1]) & (mn[:, 1] <= bounds[3])]
+    return out
+
+
+def path_segments(ctx, seg):
+    for x0, y0, x1, y1 in seg.tolist():
+        ctx.move_to(x0, y0); ctx.line_to(x1, y1)
+
+
+def path_triangles(ctx, tris):
+    for (ax, ay), (bx, by), (cx, cy) in tris.tolist():
+        ctx.move_to(ax, ay); ctx.line_to(bx, by); ctx.line_to(cx, cy); ctx.close_path()
+
+
+class Branches(Style):
+    """Radial fractal tree: arms fork level by level, growing generations with intensity; kicks pulse outward."""
+    name = "branches"
+    ARMS = [6, 3, 4, 5]
+    RATIO = 0.7
+    L0 = 140.0
+
+    def prepare(self):
+        self.rot = np.cumsum(0.0012 + 0.003 * self.c.I)
+
+    def draw(self, ctx, s):
+        rot = self.rot[s.f]
+        arms = self.ARMS[(s.bar // 16) % len(self.ARMS)]
+        depth_f = 4 + 5 * s.I
+        D = int(math.ceil(depth_f))
+        waves = [math.exp(-max(s.ph - l * 0.05, 0) * 7) * s.K for l in range(D)]  # kick travels to the tips
+        grow = [1 + 0.12 * w for w in waves]
+        grow[-1] *= depth_f - (D - 1)  # the newest generation grows in as intensity rises
+        base = 0.36 + 0.1 * s.I + 0.3 * s.mid * (1 - s.K)
+        spread = [base * (1 + 0.25 * math.sin(l * 1.3 + s.t * 0.2)) for l in range(D)]
+        asym = 0.15 * math.sin(rot * 3)
+        levels = tree_levels(self.CX, self.CY, arms, D, self.L0 * (1 + 0.04 * s.kick), self.RATIO,
+                             spread, rot, r0=28, asym=asym, grow=grow)
+        self.layer_flash(ctx, s, 0.5)
+        self.layer_grid(ctx, s, "tri")
+        self.layer_ripples(ctx, s)
+        red_tips = s.peak and s.bib == 0
+        for l, seg in enumerate(levels):
+            last = l == D - 1
+            col = RED if (last and red_tips) else INK
+            a = 0.85 - 0.05 * l + 0.3 * waves[l]
+            ctx.set_line_width(max(1.0, 3.2 * 0.8 ** l) + 1.2 * waves[l] + 0.5 * s.bass)
+            ctx.set_source_rgba(*col, min(a, 1.0) * (0.5 + 0.5 * (depth_f - (D - 1)) if last else 1.0))
+            path_segments(ctx, seg)
+            ctx.stroke()
+        ctx.set_line_width(1.5)
+        ctx.set_source_rgba(*INK, 0.5 + 0.5 * s.kick)
+        poly(ctx, arms, 28, rot, self.CX, self.CY); ctx.stroke()
+        self.layer_ticks(ctx, s, rot, R=560)
+        vignette(ctx, self.CX, self.CY, 420, 1150, 0.5)
+        self.layer_hud(ctx, s, f"   arms={arms} depth={depth_f:.1f}")
+
+
+class Sierpinski(Style):
+    """Endless zoom into six Sierpinski triangles meeting at the centre; kicks push the zoom, detail grows with intensity."""
+    name = "sierpinski"
+    red_every = 4
+
+    def prepare(self):
+        c = self.c
+        ph = c.beat % 1.0
+        v = np.where(c.K > 0.5, (0.25 + 0.6 * c.I) * (0.3 + 1.6 * np.exp(-ph * 5)), 0.08 + 0.12 * c.mid)
+        self.zoom = np.cumsum(v * (c.bpm / 60.0) / c.fps * 0.25)  # in octaves (doublings)
+        self.rot = np.cumsum(0.0006 + 0.0015 * c.I)
+        # big enough that the hexagon's inner radius covers the frame: zooming x2 is then seamless
+        self.S0 = 1.05 * math.hypot(self.VW, self.VH) / 2 / math.cos(math.pi / 6)
+
+    def draw(self, ctx, s):
+        z = self.zoom[s.f]
+        gen0 = int(math.floor(z))
+        S = self.S0 * 2 ** (z - gen0)
+        rot = self.rot[s.f]
+        tris = np.array([[[self.CX, self.CY],
+                          [self.CX + S * math.cos(th - math.pi / 6), self.CY + S * math.sin(th - math.pi / 6)],
+                          [self.CX + S * math.cos(th + math.pi / 6), self.CY + S * math.sin(th + math.pi / 6)]]
+                         for th in (rot + k * math.pi / 3 for k in range(6))])
+        min_size = 16 + 28 * (1 - s.I)
+        levels = sierpinski_holes(tris, min_size / 2, bounds=(-20, -20, self.VW + 20, self.VH + 20))
+        self.layer_flash(ctx, s, 0.5)
+        ctx.set_line_width(1.5)
+        ctx.set_source_rgba(*INK, 0.5)
+        for t in tris:  # spokes between the six triangles
+            ctx.move_to(self.CX, self.CY); ctx.line_to(*t[1])
+        ctx.stroke()
+        for l, (holes, size) in enumerate(levels):
+            fade = min(1.0, max(0.0, (size - min_size / 2) / (min_size / 2)))
+            if fade <= 0:
+                continue
+            pos = math.log2(self.S0 * 2 / size) / 6  # 0 = coarse, 1 = fine
+            w = math.exp(-max(s.ph - pos * 0.5, 0) * 7) * s.K
+            red = s.peak and self.red_every and (l + gen0) % self.red_every == 0
+            a = (0.5 + 0.5 * s.kick) if red else (0.15 + 0.3 * s.I) + 0.5 * w
+            ctx.set_line_width(1.0 + 1.5 * w * min(1.0, size / 120) + 0.6 * s.bass)
+            ctx.set_source_rgba(*(RED if red else INK), min(a, 1.0) * fade)
+            path_triangles(ctx, holes)
+            ctx.stroke()
+        vignette(ctx, self.CX, self.CY, 380, 1150, 0.55)
+        self.layer_brackets(ctx, s, RED if (s.peak and s.bib == 0) else INK)
+        self.layer_hud(ctx, s, f"   x{2 ** z:,.0f}")
+
+
+STYLES = {cls.name: cls for cls in (Bold, Geometric, Atom, Tunnel, Subtle, Horizon, Scope, Field, Sphere, Moire,
+                                    Branches, Sierpinski)}

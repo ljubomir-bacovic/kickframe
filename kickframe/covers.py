@@ -4,8 +4,9 @@ from __future__ import annotations
 import math
 
 import cairo
+import numpy as np
 
-from .styles import INK, RED, BG, TAU, poly
+from .styles import INK, RED, BG, TAU, path_segments, path_triangles, poly, sierpinski_holes, tree_levels
 
 
 class Canvas:
@@ -166,7 +167,45 @@ def ripple(cv: Canvas, rings=14, squares=6):
     _vignette(ctx)
 
 
-COVERS = {"ngons": ngons, "atom": atom, "lissajous": lissajous, "ripple": ripple}
+def tree(cv: Canvas, arms=6, depth=10, spread=0.42, ratio=0.7, red_level=7):
+    ctx = cv.ctx
+    _grid_tri(ctx, 260, 0.04)
+    L0 = 1250 * (1 - ratio) / (1 - ratio ** depth)  # whole tree reaches ~1250 from the centre
+    spreads = [spread * (1 + 0.2 * math.sin(l * 1.3)) for l in range(depth)]
+    for l, seg in enumerate(tree_levels(C, C, arms, depth, L0, ratio, spreads, -math.pi / 2, r0=70)):
+        red = l == red_level
+        ctx.set_line_width(max(2.5, 10 * 0.8 ** l))
+        ctx.set_source_rgba(*(RED if red else INK), 0.95 if red else max(0.3, 0.9 - 0.05 * l))
+        path_segments(ctx, seg); ctx.stroke()
+    ctx.set_line_width(5); ctx.set_source_rgba(*INK, 0.9)
+    poly(ctx, arms, 70, -math.pi / 2, C, C); ctx.stroke()
+    _ticks(ctx, 1380, 96, 40, 0.5, 4)
+    _vignette(ctx)
+
+
+def sierpinski(cv: Canvas, depth=7, red_every=3, hexagon=True, rotation=0.0):
+    ctx = cv.ctx
+    if hexagon:  # six triangles meeting at the centre
+        S = 1350
+        tris = np.array([[[C, C], [C + S * math.cos(t - math.pi / 6), C + S * math.sin(t - math.pi / 6)],
+                          [C + S * math.cos(t + math.pi / 6), C + S * math.sin(t + math.pi / 6)]]
+                         for t in (rotation + k * math.pi / 3 + math.pi / 6 for k in range(6))])
+    else:  # one triangle, apex up
+        R = 1450
+        tris = np.array([[[C + R * math.cos(rotation - math.pi / 2 + k * TAU / 3),
+                           C + 150 + R * math.sin(rotation - math.pi / 2 + k * TAU / 3)] for k in range(3)]])
+    ctx.set_line_width(5); ctx.set_source_rgba(*INK, 0.85)
+    path_triangles(ctx, tris); ctx.stroke()
+    for l, (holes, _) in enumerate(sierpinski_holes(tris, max_depth=depth)):
+        red = red_every and (l + 1) % red_every == 0
+        ctx.set_line_width(max(2.0, 6 * 0.78 ** l))
+        ctx.set_source_rgba(*(RED if red else INK), 0.95 if red else max(0.3, 0.85 - 0.07 * l))
+        path_triangles(ctx, holes); ctx.stroke()
+    _vignette(ctx)
+
+
+COVERS = {"ngons": ngons, "atom": atom, "lissajous": lissajous, "ripple": ripple,
+          "tree": tree, "sierpinski": sierpinski}
 
 
 def make_cover(kind: str, out: str, size=3000, title=None, subtitle=None, font="monospace", **params):
