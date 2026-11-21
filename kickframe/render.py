@@ -9,14 +9,14 @@ import time
 from multiprocessing import Pool
 
 from .analysis import Controls
-from .styles import STYLES
+from .combine import make_style
 
 _style = None
 
 
-def _init(ctl_path, style, width, height, hud):
+def _init(ctl_path, style, width, height, hud, combo):
     global _style
-    _style = STYLES[style](Controls.load(ctl_path), width, height, hud=hud)
+    _style = make_style(style, Controls.load(ctl_path), width, height, hud=hud, **combo)
 
 
 def _render_chunk(job):
@@ -38,11 +38,14 @@ def _render_chunk(job):
 
 def render_video(ctl: Controls, style: str, out: str, width=1920, height=1080, crf=24,
                  preset="veryfast", jobs=None, start=0.0, duration=None, audio=None,
-                 hud=True, chunk_seconds=60, workdir=None):
+                 hud=True, chunk_seconds=60, workdir=None, combo=None):
     """Render [start, start+duration) of the track to `out`.
 
+    style: a style name, or a combination ("tunnel+scope@0.5", "tunnel,sphere"; see combine.py).
     audio: path to the track to mux in (cut to the same range), or None for silent.
+    combo: options for combinations (timeline, switch, transition, fade_beats, blend).
     """
+    combo = combo or {}
     fps = ctl.fps
     f_start = max(0, int(round(start * fps)))
     f_end = ctl.nf if duration is None else min(ctl.nf, f_start + int(round(duration * fps)))
@@ -61,7 +64,7 @@ def render_video(ctl: Controls, style: str, out: str, width=1920, height=1080, c
     t0 = time.time()
     done = len(chunks) - len(todo)
     print(f"rendering {f_end - f_start} frames in {len(chunks)} chunks ({done} already done) on {jobs} processes")
-    with Pool(jobs, initializer=_init, initargs=(ctl_path, style, width, height, hud)) as pool:
+    with Pool(jobs, initializer=_init, initargs=(ctl_path, style, width, height, hud, combo)) as pool:
         for n in pool.imap_unordered(_render_chunk, todo):
             done += 1
             print(f"  chunk {done}/{len(chunks)}  ({time.time() - t0:.0f}s)", flush=True)
@@ -86,8 +89,9 @@ def render_video(ctl: Controls, style: str, out: str, width=1920, height=1080, c
     print(f"wrote {out}  ({os.path.getsize(out) / 1e6:.1f} MB, {time.time() - t0:.0f}s)")
 
 
-def render_stills(ctl: Controls, style: str, times, prefix: str, width=1920, height=1080, hud=True):
-    st = STYLES[style](ctl, width, height, hud=hud)
+def render_stills(ctl: Controls, style: str, times, prefix: str, width=1920, height=1080, hud=True,
+                  combo=None):
+    st = make_style(style, ctl, width, height, hud=hud, **(combo or {}))
     paths = []
     for t in times:
         f = min(ctl.nf - 1, max(0, int(round(t * ctl.fps))))

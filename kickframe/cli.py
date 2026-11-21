@@ -4,14 +4,16 @@ from __future__ import annotations
 import argparse
 import ast
 import os
+import re
 import sys
 
 from .analysis import Controls, analyze, synthetic
+from .combine import is_simple, parse_layers, parse_timeline
 from .covers import COVERS, make_cover
 from .render import render_stills, render_video
 from .styles import STYLES
 
-NO_HUD_BY_DEFAULT = {"tunnel", "subtle"}
+NO_HUD_BY_DEFAULT = {"tunnel", "subtle", "horizon", "moire", "branches"}
 
 
 def _controls(args) -> Controls:
@@ -32,7 +34,21 @@ def _controls(args) -> Controls:
 def _hud(args) -> bool:
     if args.hud is not None:
         return args.hud
+    if not is_simple(args.style, args.timeline):
+        return False  # combinations: off unless --hud
     return args.style not in NO_HUD_BY_DEFAULT
+
+
+def _combo(args) -> dict:
+    try:
+        for item in args.style.split(","):
+            parse_layers(item)
+        if args.timeline:
+            parse_timeline(args.timeline)
+    except ValueError as e:
+        sys.exit(f"kickframe: {e}")
+    return dict(timeline=args.timeline, switch=args.switch, transition=args.transition,
+                fade_beats=args.fade_beats, blend=args.blend)
 
 
 def _parse_size(s: str):
@@ -56,7 +72,17 @@ def main(argv=None):
         p.add_argument("--reanalyze", action="store_true")
         p.add_argument("--synthetic", action="store_true", help="no audio: a beat grid at --bpm")
         p.add_argument("--bars", type=int, default=32, help="length for --synthetic")
-        p.add_argument("--style", choices=sorted(STYLES), default="tunnel")
+        p.add_argument("--style", default="tunnel",
+                       help="a style, layers 'tunnel+scope@0.5', or a sequence 'tunnel,sphere,branches'")
+        p.add_argument("--switch", help="when a sequence changes style: every N bars (default 32), "
+                                         "'drops' (kick returns) or 'sections' (kick stops or returns)")
+        p.add_argument("--timeline", help="explicit sequence, e.g. '0=tunnel, 4:48=sphere+scope@0.4, b129=branches' "
+                                          "(seconds, m:ss or bNNN for a bar; snapped to the bar line)")
+        p.add_argument("--transition", choices=["fade", "cut"], default="fade",
+                       help="fade: crossfade landing on the downbeat; cut: hard cut on the downbeat")
+        p.add_argument("--fade-beats", type=float, default=4.0, help="crossfade length (default 4 = one bar)")
+        p.add_argument("--blend", choices=["screen", "add", "over"], default="screen",
+                       help="how layers combine (default screen: lines brighten, never hide each other)")
         p.add_argument("--size", default="1080p", help="1080p, 4k, 720p, vertical, square or WxH")
         g = p.add_mutually_exclusive_group()
         g.add_argument("--hud", dest="hud", action="store_true", default=None, help="show bar counter/labels")
@@ -104,6 +130,8 @@ def main(argv=None):
             print(f"  video  {name:10s} {cls.__doc__.split(chr(10))[0]}")
         for name, fn in COVERS.items():
             print(f"  cover  {name}")
+        print("\n  combine: --style 'tunnel+scope@0.5' (layers), --style 'tunnel,sphere' --switch 16|drops|sections,")
+        print("           --timeline '0=tunnel, 4:48=sphere, b129=branches+field@0.4'")
         return
 
     if args.cmd == "analyze":
@@ -124,15 +152,17 @@ def main(argv=None):
                    font=args.font, **params)
         return
 
+    combo = _combo(args)
     ctl = _controls(args)
     w, h = _parse_size(args.size)
     if args.cmd == "stills":
-        render_stills(ctl, args.style, args.at, f"{args.prefix}_{args.style}", w, h, hud=_hud(args))
+        tag = "timeline" if args.timeline else re.sub(r"[^A-Za-z0-9_.-]+", "-", args.style)
+        render_stills(ctl, args.style, args.at, f"{args.prefix}_{tag}", w, h, hud=_hud(args), combo=combo)
     elif args.cmd == "video":
         render_video(ctl, args.style, args.out, w, h, crf=args.crf, preset=args.preset, jobs=args.jobs,
                      start=args.start, duration=args.duration,
                      audio=args.audio if args.with_audio and not args.synthetic else None,
-                     hud=_hud(args), workdir=args.workdir)
+                     hud=_hud(args), workdir=args.workdir, combo=combo)
 
 
 if __name__ == "__main__":

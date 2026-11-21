@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kickframe User Guide</title>
+<style>
+:root {
+  --paper: #fbfaf7;
+  --ink: #17171a;
+  --muted: #5d5d63;
+  --rule: #e2e0da;
+  --plate: #060607;
+  --red: #e62a2a;
+  --code-bg: #f1efe9;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 var(--sans); }
+main { max-width: 920px; margin: 0 auto; padding: 0 24px 80px; }
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+h2 { font-size: 1.7rem; margin: 3.2rem 0 1rem; padding-top: 1.4rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--red); font-family: var(--mono); font-weight: 600; margin-right: .6rem; }
+h3 { font-size: 1.15rem; margin: 2rem 0 .6rem; }
+p, li { max-width: 72ch; }
+a { color: var(--ink); text-decoration-color: var(--red); text-underline-offset: 3px; }
+code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: .1em .35em; border-radius: 3px; }
+pre { font-family: var(--mono); font-size: .84rem; line-height: 1.5; background: var(--plate); color: #eeeeea;
+      padding: 14px 18px; border-radius: 6px; overflow-x: auto; border-left: 3px solid var(--red); }
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+pre .c { color: #8d8d92; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.4rem; font-size: .92rem; }
+th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
+th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td code { white-space: nowrap; }
+.note { border-left: 3px solid var(--red); background: #fff; padding: 10px 16px; margin: 1.2rem 0; font-size: .95rem; }
+.note b { color: var(--red); }
+
+/* hero */
+.hero { background: var(--plate); color: #eeeeea; margin: 0 -24px 2rem; padding: 0; position: relative; }
+.hero img { display: block; width: 100%; }
+.hero .title { position: absolute; left: 40px; bottom: 34px; }
+.hero h1 { font-family: var(--mono); font-size: 3.4rem; margin: 0; letter-spacing: .02em; }
+.hero h1 span { color: var(--red); }
+.hero p { margin: .3rem 0 0; color: #b9b9b5; font-size: 1.05rem; }
+.meta { color: var(--muted); font-size: .88rem; margin-bottom: 2rem; }
+
+/* toc */
+.toc { columns: 2; column-gap: 40px; padding: 0; list-style: none; font-size: .95rem; counter-reset: toc; }
+.toc li { break-inside: avoid; padding: 3px 0; counter-increment: toc; }
+.toc li::before { content: counter(toc, decimal-leading-zero); font-family: var(--mono); color: var(--red); margin-right: .7rem; }
+.toc a { text-decoration: none; }
+
+/* figures */
+figure { margin: 1.2rem 0 1.6rem; break-inside: avoid; }
+figure img { display: block; width: 100%; border-radius: 4px; background: var(--plate); }
+figcaption { font-size: .84rem; color: var(--muted); margin-top: .45rem; }
+figcaption b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+.grid { display: grid; gap: 10px; margin: 1rem 0 1.6rem; break-inside: avoid; }
+.grid figure { margin: 0; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.sizes { display: grid; grid-template-columns: 1.78fr 1fr .56fr; gap: 10px; align-items: end; break-inside: avoid; }
+.sizes figure { margin: 0; }
+
+.style-block { break-inside: avoid; margin-bottom: 2.2rem; }
+.style-block h3 { font-family: var(--mono); margin-top: 1.6rem; }
+.style-block h3 small { font-family: var(--sans); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: .6rem; }
+.tag { display: inline-block; font-family: var(--mono); font-size: .72rem; padding: 1px 7px; border: 1px solid var(--rule); border-radius: 10px; color: var(--muted); margin-left: .4rem; vertical-align: 2px; }
+
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps > li { counter-increment: step; position: relative; padding-left: 44px; margin-bottom: 1.1rem; max-width: none; }
+.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ink); color: var(--paper); font: 600 .85rem/28px var(--mono); text-align: center; }
+
+@media (max-width: 640px) {
+  main { padding: 0 16px 60px; }
+  .hero { margin: 0 -16px 1.5rem; }
+  .hero h1 { font-size: 2rem; } .hero .title { left: 18px; bottom: 16px; } .hero p { font-size: .85rem; }
+  .toc { columns: 1; }
+  .g3, .g4 { grid-template-columns: repeat(2, 1fr); }
+  .sizes { grid-template-columns: 1fr; }
+  table { display: block; overflow-x: auto; }
+}
+@page { size: A4; margin: 14mm 13mm 16mm; }
+@media print {
+  body { font-size: 10.5pt; background: var(--paper); }
+  main { max-width: none; padding: 0; }
+  .hero { margin: 0 0 1.5rem; }
+  h2 { margin-top: 2rem; break-after: avoid; }
+  #styles, #variations, #combine, #covers, #reference, #extend { break-before: page; margin-top: 0; }
+  h3 { break-after: avoid; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; font-size: 8pt; }
+  pre, .note, tr, figure { break-inside: avoid; }
+  a { text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <img src="{{img:syn_tunnel_0100.10s.png}}" alt="The tunnel style at a peak: nested n-gons spiralling outward with red accent layers">
+  <div class="title">
+    <h1>KICK<span>/</span>FRAME</h1>
+    <p>Beat-synced geometric visualizers and cover art for techno tracks</p>
+  </div>
+</header>
+
+<p class="meta">User guide · Kickframe 0.1.0 · Every image in this document was rendered by Kickframe itself.</p>
+
+<p>Kickframe turns an audio track into a music video of thin, precise line geometry that moves with the beat. It listens to the track, works out the exact tempo and beat grid, measures the kick, bass, mids and hi-hats on every video frame, and drives a choice of twelve visual styles, including two fractals, from those signals. It also draws square cover art in the same visual language, at the 3000&times;3000 size streaming platforms ask for.</p>
+<p>Everything is drawn with code (Cairo vector graphics, encoded to H.264 by ffmpeg), so output is crisp at any resolution and the same command always gives the same result.</p>
+
+<ol class="toc">
+  <li><a href="#install">Installation</a></li>
+  <li><a href="#quickstart">Quick start</a></li>
+  <li><a href="#analysis">How your track is analyzed</a></li>
+  <li><a href="#styles">Video styles gallery</a></li>
+  <li><a href="#motion">How the visuals follow the music</a></li>
+  <li><a href="#sizes">Output sizes and the HUD</a></li>
+  <li><a href="#variations">More possibilities: formats and variants</a></li>
+  <li><a href="#combine">Combining styles in one video</a></li>
+  <li><a href="#covers">Cover art</a></li>
+  <li><a href="#reference">Command reference</a></li>
+  <li><a href="#rendering">Render time, file size and resuming</a></li>
+  <li><a href="#extend">Writing your own style</a></li>
+  <li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+
+<!-- ===================================================================== -->
+<h2 id="install"><span class="num">01</span>Installation</h2>
+
+<p>You need <b>Python 3.10 or newer</b> and <b>ffmpeg</b>. The Python dependencies are just <code>numpy</code> and <code>pycairo</code>, and pip installs them for you.</p>
+
+<ol class="steps">
+<li><b>Install ffmpeg</b> and make sure it is on your <code>PATH</code> (open a new terminal and run <code>ffmpeg -version</code>).
+<table>
+<thead><tr><th>Platform</th><th>Command</th></tr></thead>
+<tr><td>Windows</td><td><code>winget install Gyan.FFmpeg</code></td></tr>
+<tr><td>macOS</td><td><code>brew install ffmpeg</code></td></tr>
+<tr><td>Debian / Ubuntu</td><td><code>sudo apt install ffmpeg libcairo2-dev pkg-config</code></td></tr>
+</table>
+</li>
+<li><b>Create and activate a virtual environment</b> in the Kickframe folder:
+<pre><code>python -m venv .venv
+<span class="c"># Windows</span>
+.venv\Scripts\activate
+<span class="c"># macOS / Linux</span>
+source .venv/bin/activate</code></pre>
+</li>
+<li><b>Install Kickframe</b> in editable mode:
+<pre><code>pip install -e .</code></pre>
+This installs the <code>kickframe</code> command, so you can run it from any folder, for example the one that holds your tracks. With <code>-e</code>, edits to the code take effect immediately with no reinstall. <code>python -m kickframe …</code> works too.</li>
+<li><b>Check it works:</b>
+<pre><code>kickframe styles</code></pre>
+<pre><code>  video  bold       Nested squares stepping 22.5 deg per beat, strobe grid, red downbeats.
+  video  geometric  Morphing n-gons (sides change every 16 bars), ripples, spokes,
+  video  atom       Geometric base plus electron shells with comet-trail electrons and a
+  video  tunnel     The n-gon spiral as an endless tunnel: layers are born at the centre as
+  video  subtle     Four thin squares, slow continuous rotation, soft breath on the kick.
+  video  horizon    Perspective floor rushing toward a polygon sun on the horizon; kicks surge the travel.
+  video  scope      Radial oscilloscope: a closed trace shaped by bass, mids and hats, leaving fading echoes.
+  video  field      A lattice of crosses; every kick sends a wave from the centre that lifts and turns them.
+  video  sphere     Wireframe globe turning a step per beat; a scan line sweeps it on each kick, red equator in peaks.
+  video  moire      Two sets of concentric rings that slide apart on every kick; their interference blooms into moire.
+  video  branches   Radial fractal tree: arms fork level by level, growing generations with intensity; kicks pulse outward.
+  video  sierpinski Endless zoom into six Sierpinski triangles meeting at the centre; kicks push the zoom, detail grows with intensity.
+  cover  ngons
+  cover  atom
+  cover  lissajous
+  cover  ripple
+  cover  tree
+  cover  sierpinski
+
+  combine: --style 'tunnel+scope@0.5' (layers), --style 'tunnel,sphere' --switch 16|drops|sections,
+           --timeline '0=tunnel, 4:48=sphere, b129=branches+field@0.4'</code></pre>
+</li>
+</ol>
+
+<div class="note"><b>Tip.</b> The <code>stills</code> and <code>cover</code> commands never call ffmpeg when you use <code>--synthetic</code>, so you can try every look before ffmpeg is installed. Analysing a real track and rendering video both need it.</div>
+
+<!-- ===================================================================== -->
+<h2 id="quickstart"><span class="num">02</span>Quick start</h2>
+
+<p>A full render of a long track takes minutes, so work in three steps: look at a few frames, then a short preview with sound, then the whole track.</p>
+
+<ol class="steps">
+<li><b>Look first with stills.</b> A handful of PNG frames takes seconds. Pick times from different parts of the track: intro, a groove, the breakdown, the peak.
+<pre><code>kickframe stills track.mp3 --style tunnel --at 60 300 480 763</code></pre>
+This writes <code>still_tunnel_0060.00s.png</code>, <code>still_tunnel_0300.00s.png</code> and so on. The first run also analyses the track and caches the result as <code>track.30fps.controls.npz</code>; later commands reuse it instantly.</li>
+<li><b>Render a short preview with sound</b>:
+<pre><code>kickframe video track.mp3 --style tunnel --start 480 --duration 30 --with-audio -o preview.mp4</code></pre></li>
+<li><b>Render the whole track</b>. Using a work folder means an interrupted render resumes where it stopped:
+<pre><code>kickframe video track.mp3 --style tunnel -o track_tunnel.mp4 --workdir work_tunnel</code></pre>
+The video is silent unless you add <code>--with-audio</code>.</li>
+<li><b>Make the cover</b>:
+<pre><code>kickframe cover ngons -o cover.png
+kickframe cover ngons -o cover_title.png --title BERLIN_1 --subtitle "136 BPM"</code></pre></li>
+</ol>
+
+<h3>No track yet? Use synthetic mode</h3>
+<p><code>--synthetic</code> replaces the audio with a generated beat grid. It is a four-section arrangement (intro, groove, build, peak) of equal length, which is handy for loops, testing and trying styles.</p>
+<pre><code>kickframe video --synthetic --bpm 136 --bars 32 --style bold -o loop.mp4
+kickframe stills --synthetic --bpm 136 --bars 64 --style atom --at 14 42 70 100</code></pre>
+<p>The video-style images in this guide were made this way: 64 bars at 136&nbsp;BPM (about 113&nbsp;s), with 16 bars per section. Synthetic mode keeps the kick running throughout, so it has no breakdowns. The breakdown examples in section 5 were rendered through the Python API with the kick switched off.</p>
+
+<!-- ===================================================================== -->
+<h2 id="analysis"><span class="num">03</span>How your track is analyzed</h2>
+
+<p>The first time you use a track, Kickframe decodes it with ffmpeg and builds a set of <i>control signals</i>, one value per video frame. It saves them next to where you run the command as <code>&lt;track&gt;.&lt;fps&gt;fps.controls.npz</code>, and later runs print <code>using cached analysis …</code> and skip this step.</p>
+
+<h3>Tempo and beat grid</h3>
+<p>Kickframe detects the BPM, or takes <code>--bpm 136</code> as a hint, then fits the exact tempo and phase to the kick attacks in the waveform. Masters are rarely exactly on their nominal tempo. The example track <i>berlin_1</i> runs at 136.026&nbsp;BPM.</p>
+<p>It then measures the grid error every 8 seconds and follows it, because edited arrangements drift and jump. <i>berlin_1</i> shifts 75&nbsp;ms at its breakdown, yet the grid stays within about 1&nbsp;ms over all 17 minutes. Because of this, the visuals land on the kick from the first bar to the last.</p>
+
+<h3>Per-frame signals</h3>
+<table>
+<thead><tr><th>Signal</th><th>Measured from</th><th>What it drives</th></tr></thead>
+<tr><td><b>Kick</b> <code>K</code> and pulse</td><td>35–120 Hz energy, smoothed over 2 beats</td><td>Whether the groove is running; the pulse that decays after every beat</td></tr>
+<tr><td><b>Bass</b></td><td>120–400 Hz</td><td>Line thickness, centre-mark size</td></tr>
+<tr><td><b>Mids</b></td><td>400–2500 Hz</td><td>Breathing and drift in breakdowns, the rose curve</td></tr>
+<tr><td><b>Hats</b></td><td>Onsets above 2.5 kHz</td><td>Tick marks around the rim</td></tr>
+<tr><td><b>Intensity</b> <code>I</code></td><td>Bass + mids + highs, smoothed over 8 beats</td><td>How busy the picture is: layer count, spokes, orbits; above 0.72 with the kick on counts as a <i>peak</i></td></tr>
+<tr><td><b>Flash</b></td><td>Kick returning after a break</td><td>A white flash on the re-entry</td></tr>
+<tr><td><b>Beat / bar</b></td><td>The fitted grid</td><td>All timing. The first kick re-entry decides which beat is "1" of the bar</td></tr>
+</table>
+
+<p>Run the analysis on its own (it always re-analyses) to see what was detected:</p>
+<pre><code>kickframe analyze track.mp3 --bpm 136
+<span class="c">duration 1021.4s  bpm 136.026  offset 0.112s  grid corrections -38..+37 ms  frames 30642  breaks/re-entries at [...]</span></code></pre>
+<p>The sample line above is illustrative. Your track's numbers will differ.</p>
+
+<div class="note"><b>Note.</b> The cache file is named after the track and the frame rate. If you change <code>--bpm</code>, replace the audio file or want a fresh result, add <code>--reanalyze</code> to <code>stills</code> or <code>video</code>, or run <code>kickframe analyze</code>.</div>
+
+<!-- ===================================================================== -->
+<h2 id="styles"><span class="num">04</span>Video styles gallery</h2>
+
+<p>Kickframe has twelve styles: five originals (<code>tunnel</code>, <code>atom</code>, <code>geometric</code>, <code>bold</code>, <code>subtle</code>), five newer ones (<code>horizon</code>, <code>scope</code>, <code>field</code>, <code>sphere</code>, <code>moire</code>) and two fractals (<code>branches</code>, <code>sierpinski</code>). Each row shows one style through the four synthetic sections. As intensity rises, the picture grows denser, and the red accent appears on the downbeat (beat 1 of each bar) in peaks. Choose a style with <code>--style NAME</code>. The default is <code>tunnel</code>.</p>
+
+<div class="style-block">
+<h3>tunnel <small>default · HUD off by default</small></h3>
+<p>The n-gon spiral as an endless tunnel. Triangles are born at the centre and flow outward through squares, pentagons, hexagons and octagons. Each kick surges the flow forward, the twist follows the track's energy, and every 24th layer is red.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_tunnel_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_tunnel_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_tunnel_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_tunnel_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>atom <small>HUD on by default</small></h3>
+<p>Electron shells with comet-trail electrons orbiting a phyllotaxis nucleus, over thinned morphing polygons. The number of shells grows with intensity, from two in the intro to six at the peak. A Lissajous figure appears in peaks and a rose curve in breakdowns.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_atom_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_atom_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_atom_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_atom_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>geometric <small>HUD on by default</small></h3>
+<p>Morphing n-gons whose number of sides changes every 16 bars (4 → 3 → 6 → 5 → 8 → 3 → 4 → 6), easing from one shape to the next over a bar. Kick ripples spread outward. Spokes appear above medium intensity, and up to three orbits carry small triangles and squares. The background grid switches between square and triangular each phrase.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_geometric_0014.20s.png}}" alt=""><figcaption><b>intro</b> · n=4</figcaption></figure>
+  <figure><img src="{{img:syn_geometric_0042.30s.png}}" alt=""><figcaption><b>groove</b> · n=3</figcaption></figure>
+  <figure><img src="{{img:syn_geometric_0070.50s.png}}" alt=""><figcaption><b>build</b> · n=6</figcaption></figure>
+  <figure><img src="{{img:syn_geometric_0100.10s.png}}" alt=""><figcaption><b>peak</b> · n=5</figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>bold <small>HUD on by default</small></h3>
+<p>Nested squares that step 22.5° on every beat with an eased snap, alternating direction at higher intensity. In peaks you get a scrolling grid, sweeping horizontal bars and a red outer square and centre on each downbeat. In breakdowns the squares drift slowly instead of stepping.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_bold_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_bold_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_bold_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_bold_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>subtle <small>HUD off by default</small></h3>
+<p>Four thin squares in slow, continuous counter-rotation, with drifting dust and a soft breath on each kick. Squares appear one by one as intensity rises. This is the calmest style and gives by far the smallest files, which makes it good for long mixes and backgrounds.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_subtle_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_subtle_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_subtle_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_subtle_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>horizon <small>HUD off by default</small></h3>
+<p>A perspective floor rushing toward a polygon sun that sets behind the horizon. Each kick surges the travel forward, and the sun's slices scroll down once per beat. The sun changes shape every 16 bars (octagon, hexagon, 12-gon, square). In peaks a mirrored ceiling closes in to form a corridor and the sun turns red. Hats flicker the ticks along the horizon.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_horizon_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_horizon_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_horizon_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_horizon_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>scope <small>HUD on by default</small></h3>
+<p>A radial oscilloscope. One closed trace is shaped by three waves at once: bass sets the large lobes, mids the medium ones and hats the fine ripple. Recent traces linger as expanding echoes, and their number grows with intensity. The lobe counts change every 16 bars (3:8:24, 4:10:32, 5:7:28, 6:12:36). In peaks an XY Lissajous figure runs behind it and the trace turns red on the downbeat.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_scope_0014.20s.png}}" alt=""><figcaption><b>intro</b> · 3:8:24</figcaption></figure>
+  <figure><img src="{{img:syn_scope_0042.30s.png}}" alt=""><figcaption><b>groove</b> · 4:10:32</figcaption></figure>
+  <figure><img src="{{img:syn_scope_0070.50s.png}}" alt=""><figcaption><b>build</b> · 5:7:28</figcaption></figure>
+  <figure><img src="{{img:syn_scope_0100.10s.png}}" alt=""><figcaption><b>peak</b> · 6:12:36</figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>field <small>HUD on by default</small></h3>
+<p>A lattice of small crosses. Each kick sends a wave out from the centre that enlarges the crosses it passes and turns them into an X, while the previous beat's wave is still travelling outward. The lit area grows with intensity. Hats light random crosses on every sixteenth note, and in peaks the wavefront turns red on the downbeat. In breakdowns the waves give way to a slow interference ripple driven by the mids.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_field_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_field_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_field_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_field_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>sphere <small>HUD on by default</small></h3>
+<p>A wireframe globe in real 3D, with bright lines on the front face and dim ones behind. It turns 15° per beat with an eased snap while the groove runs, and drifts in breakdowns. Every kick sends a scan line from pole to pole. The grid grows with intensity from 6×3 to 18×7 meridians and parallels. In peaks the equator turns red, and above medium intensity a tilted orbit with three triangle markers circles the globe.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_sphere_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_sphere_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_sphere_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_sphere_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>moire <small>HUD off by default</small></h3>
+<p>Two sets of concentric rings whose centres slide apart on every kick and back together between beats, so interference fringes bloom and collapse in time with the music. The pair slowly rotates, and the rings spread further as intensity rises. Hats shimmer the second set. In peaks a red wavefront spreads out on each kick, and in breakdowns the second set turns into slowly rotating hexagons.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_moire_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_moire_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_moire_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_moire_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+<p>Moiré patterns depend on the output resolution. Check them at your final <code>--size</code>, because a 720p preview shows different fringes than 4K.</p>
+</div>
+
+<h3 style="font-family:var(--sans)">Fractals</h3>
+<p>The two fractal styles are drawn from recursion, so the detail on screen follows the music. As a track builds, more levels of the fractal appear.</p>
+
+<div class="style-block">
+<h3>branches <small>fractal · HUD off by default</small></h3>
+<p>A radial fractal tree. Trunks grow out from the centre and fork in two at every level, each child 70% the length of its parent. The number of generations follows intensity, from 4 in an intro to 9 at a peak. The newest generation grows in gradually rather than popping in. Each kick runs from trunk to tips as a pulse of length and brightness. The number of arms changes every 16 bars (6, 3, 4, 5). In breakdowns the mids open the branch angles so the tree spreads out. In peaks the tips turn red on the downbeat.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_branches_0014.20s.png}}" alt=""><figcaption><b>intro</b> · 6 arms</figcaption></figure>
+  <figure><img src="{{img:syn_branches_0042.30s.png}}" alt=""><figcaption><b>groove</b> · 3 arms</figcaption></figure>
+  <figure><img src="{{img:syn_branches_0070.50s.png}}" alt=""><figcaption><b>build</b> · 4 arms</figcaption></figure>
+  <figure><img src="{{img:syn_branches_0100.10s.png}}" alt=""><figcaption><b>peak</b> · 5 arms</figcaption></figure>
+</div>
+</div>
+
+<div class="style-block">
+<h3>sierpinski <small>fractal · HUD on by default</small></h3>
+<p>An endless zoom into six Sierpinski triangles that meet at the centre. Each kick pushes the zoom forward, and the camera drifts slowly in breakdowns. The pulse from each kick travels from the largest triangles to the smallest. Finer levels fade in as intensity rises, and in peaks every fourth level turns red. The HUD shows the total zoom factor, which passes ×100,000 within a few minutes.</p>
+<div class="grid g4">
+  <figure><img src="{{img:syn_sierpinski_0014.20s.png}}" alt=""><figcaption><b>intro</b></figcaption></figure>
+  <figure><img src="{{img:syn_sierpinski_0042.30s.png}}" alt=""><figcaption><b>groove</b></figcaption></figure>
+  <figure><img src="{{img:syn_sierpinski_0070.50s.png}}" alt=""><figcaption><b>build</b></figcaption></figure>
+  <figure><img src="{{img:syn_sierpinski_0100.10s.png}}" alt=""><figcaption><b>peak</b></figcaption></figure>
+</div>
+<p><b>Why the zoom never jumps:</b> a Sierpinski triangle doubled in size about one corner contains an exact copy of itself at that corner. The style zooms about the shared centre, and every doubling it swaps the picture for the original size with one more level of detail. Line brightness depends on each triangle's size on screen, not on its recursion level, so the swap is invisible: the frames on either side of it match to within 0.005 of a grey level.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="motion"><span class="num">05</span>How the visuals follow the music</h2>
+
+<h3>Every beat: the kick pulse</h3>
+<p>On each kick the shapes expand slightly, brighten and thicken, then relax before the next beat. Inner layers react a fraction earlier than outer ones, which gives a ripple from the centre outward. These four frames are quarter-beats apart in the <code>bold</code> style at a peak:</p>
+<div class="grid g4">
+  <figure><img src="{{img:pulse_bold_0.png}}" alt=""><figcaption><b>on the kick</b></figcaption></figure>
+  <figure><img src="{{img:pulse_bold_1.png}}" alt=""><figcaption><b>+¼ beat</b></figcaption></figure>
+  <figure><img src="{{img:pulse_bold_2.png}}" alt=""><figcaption><b>+½ beat</b></figcaption></figure>
+  <figure><img src="{{img:pulse_bold_3.png}}" alt=""><figcaption><b>+¾ beat</b></figcaption></figure>
+</div>
+
+<h3>Breakdowns: when the kick drops out</h3>
+<p>When the kick disappears, every style changes mode. Stepping rotation becomes a slow drift driven by the mids, shapes breathe with the pads, and <code>geometric</code> and <code>atom</code> draw a rose curve. The HUD label switches to <b>BREAKDOWN</b>, or to <b>OUTRO</b> in the last 10% of the track.</p>
+<div class="grid g3">
+  <figure><img src="{{img:breakdown_geometric.png}}" alt=""><figcaption><b>geometric</b> · rose curve</figcaption></figure>
+  <figure><img src="{{img:breakdown_atom.png}}" alt=""><figcaption><b>atom</b></figcaption></figure>
+  <figure><img src="{{img:breakdown_tunnel.png}}" alt=""><figcaption><b>tunnel</b> · slow flow</figcaption></figure>
+  <figure><img src="{{img:breakdown_horizon.png}}" alt=""><figcaption><b>horizon</b> · echoes leave the sun</figcaption></figure>
+  <figure><img src="{{img:breakdown_moire.png}}" alt=""><figcaption><b>moire</b> · rings against hexagons</figcaption></figure>
+  <figure><img src="{{img:breakdown_field.png}}" alt=""><figcaption><b>field</b> · interference ripple</figcaption></figure>
+  <figure><img src="{{img:breakdown_branches.png}}" alt=""><figcaption><b>branches</b> · fewer generations, open angles</figcaption></figure>
+  <figure><img src="{{img:breakdown_sierpinski.png}}" alt=""><figcaption><b>sierpinski</b> · slow drift, coarse levels only</figcaption></figure>
+  <figure><img src="{{img:breakdown_scope.png}}" alt=""><figcaption><b>scope</b> · mids shape the trace</figcaption></figure>
+</div>
+
+<h3>The drop: kick re-entry flash</h3>
+<p>When the kick returns after a break, the frame flashes white and fades over about two beats. The first re-entry in a track also sets which beat is counted as "1" of the bar, so bar numbers and red downbeats line up with the arrangement.</p>
+<div class="grid g2">
+  <figure><img src="{{img:breakdown_bold.png}}" alt=""><figcaption><b>bold</b> · during the breakdown</figcaption></figure>
+  <figure><img src="{{img:reentry_geometric.png}}" alt=""><figcaption><b>geometric</b> · the frame the kick returns</figcaption></figure>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="sizes"><span class="num">06</span>Output sizes and the HUD</h2>
+
+<h3>Sizes and aspect ratios</h3>
+<p>Styles are drawn on a virtual canvas 1080 units tall, so the same style works at any resolution or shape. On wider or taller frames the composition stays centred and extends to fill the space.</p>
+<table>
+<thead><tr><th><code>--size</code></th><th>Pixels</th><th>Use</th></tr></thead>
+<tr><td><code>1080p</code> (default)</td><td>1920 × 1080</td><td>YouTube, general</td></tr>
+<tr><td><code>4k</code></td><td>3840 × 2160</td><td>High-resolution release (roughly 4× the render time)</td></tr>
+<tr><td><code>720p</code></td><td>1280 × 720</td><td>Fast previews</td></tr>
+<tr><td><code>vertical</code></td><td>1080 × 1920</td><td>Reels, Shorts, TikTok, Stories</td></tr>
+<tr><td><code>square</code></td><td>1080 × 1080</td><td>Instagram feed</td></tr>
+<tr><td><code>WxH</code>, e.g. <code>2560x1440</code></td><td>anything</td><td>Custom</td></tr>
+</table>
+<div class="sizes">
+  <figure><img src="{{img:syn_tunnel_0100.10s.png}}" alt=""><figcaption><b>1080p</b></figcaption></figure>
+  <figure><img src="{{img:size_square_tunnel.png}}" alt=""><figcaption><b>square</b></figcaption></figure>
+  <figure><img src="{{img:size_vertical_tunnel.png}}" alt=""><figcaption><b>vertical</b></figcaption></figure>
+</div>
+
+<h3>The HUD</h3>
+<p>The HUD is a small readout in the bottom corners. It is <b>on by default</b> for <code>atom</code>, <code>geometric</code>, <code>bold</code>, <code>scope</code>, <code>field</code> and <code>sphere</code>, and <b>off</b> for <code>tunnel</code>, <code>subtle</code>, <code>horizon</code>, <code>moire</code> and <code>branches</code>. <code>sierpinski</code> shows it, including the current zoom factor. Override it with <code>--hud</code> or <code>--no-hud</code>.</p>
+<figure><img src="{{img:hud_on_tunnel.png}}" alt=""><figcaption><b>--hud</b> on the tunnel style</figcaption></figure>
+<table>
+<thead><tr><th>Element</th><th>Meaning</th></tr></thead>
+<tr><td>Four small squares</td><td>Beat in the bar. The lit square shows the current beat, and it turns red in peaks.</td></tr>
+<tr><td><code>136 BPM   057.3</code></td><td>Tempo, then bar number and beat (bar 57, beat 3)</td></tr>
+<tr><td><code>n=5</code> / <code>4:10:32</code> / <code>16x7</code></td><td>Style readout: polygon sides (<code>geometric</code>, <code>atom</code>), lobes for bass:mids:hats (<code>scope</code>), meridians × parallels (<code>sphere</code>)</td></tr>
+<tr><td>Thin bar, bottom right</td><td>Intensity meter, red during peaks</td></tr>
+<tr><td>Label</td><td><b>INTRO</b>, <b>GROOVE</b>, <b>PEAK</b>, <b>BREAKDOWN</b> or <b>OUTRO</b></td></tr>
+</table>
+
+<!-- ===================================================================== -->
+<h2 id="variations"><span class="num">07</span>More possibilities: formats and variants</h2>
+
+<h3>One track, many formats</h3>
+<p>Because every style is resolution-independent, one analysis can feed a whole release campaign: a 1080p or 4K video for YouTube, vertical clips for Reels and Shorts cut from the strongest 15–30 seconds, and square loops for the Instagram feed. The analysis is cached after the first command, so the extra renders cost only drawing time.</p>
+<pre><code><span class="c"># full video for YouTube</span>
+kickframe video track.mp3 --style sphere -o yt_sphere.mp4 --with-audio --workdir work_sphere
+<span class="c"># 20-second vertical clip from the drop</span>
+kickframe video track.mp3 --style horizon --size vertical --start 480 --duration 20 --with-audio -o reel_drop.mp4
+<span class="c"># square loop, no audio, for the feed</span>
+kickframe video track.mp3 --style moire --size square --start 600 --duration 15 -o feed_loop.mp4
+<span class="c"># a 4K master</span>
+kickframe video track.mp3 --style scope --size 4k --crf 22 -o master_4k.mp4 --with-audio</code></pre>
+<div class="grid g4" style="align-items:end">
+  <figure><img src="{{img:size_vertical_horizon.png}}" alt=""><figcaption><b>horizon</b> · vertical</figcaption></figure>
+  <figure><img src="{{img:size_vertical_sphere.png}}" alt=""><figcaption><b>sphere</b> · vertical</figcaption></figure>
+  <figure><img src="{{img:size_square_moire.png}}" alt=""><figcaption><b>moire</b> · square</figcaption></figure>
+  <figure><img src="{{img:size_square_scope.png}}" alt=""><figcaption><b>scope</b> · square</figcaption></figure>
+</div>
+
+<h3>Pairing styles with tracks</h3>
+<table>
+<thead><tr><th>Track character</th><th>Try</th><th>Why</th></tr></thead>
+<tr><td>Driving, hypnotic, peak-time</td><td><code>tunnel</code>, <code>horizon</code></td><td>Constant forward motion that surges on every kick</td></tr>
+<tr><td>Hard, minimal, percussive</td><td><code>bold</code>, <code>field</code></td><td>Sharp, beat-locked steps and waves; hats are clearly visible</td></tr>
+<tr><td>Melodic, with long breakdowns</td><td><code>atom</code>, <code>geometric</code>, <code>sphere</code></td><td>Strong breakdown modes (rose curve, drift, slow rotation)</td></tr>
+<tr><td>Bass-heavy, groovy</td><td><code>scope</code></td><td>Bass shapes the main lobes, so the low end is visible directly</td></tr>
+<tr><td>Psychedelic, acid</td><td><code>moire</code></td><td>Interference that flickers and blooms on every kick</td></tr>
+<tr><td>Organic, deep, evolving</td><td><code>branches</code></td><td>Grows with the track: more generations as it builds, wider branches in breaks</td></tr>
+<tr><td>Long builds, endless rollers</td><td><code>sierpinski</code></td><td>A zoom that never ends, pushed forward by every kick</td></tr>
+<tr><td>Ambient, DJ mixes, backgrounds</td><td><code>subtle</code></td><td>Calm, and far smaller files</td></tr>
+</table>
+
+<h3>Variants in two lines</h3>
+<p>Most styles keep their look in class attributes, so a variant is a short subclass with no new drawing code. Add these to <code>kickframe/styles.py</code> and register them in <code>STYLES</code> to use them from the command line, for example as <code>--style tunnel_mono</code>.</p>
+<pre><code>class TunnelMono(Tunnel):         <span class="c"># no red layers</span>
+    name, red_every = "tunnel_mono", 0
+
+class TunnelDense(Tunnel):        <span class="c"># tighter spacing, more layers, hexagons to 12-gons</span>
+    name, SEQ, SP, NL = "tunnel_dense", [6, 8, 12], 8.0, 95
+
+class HorizonTri(Horizon):        <span class="c"># a triangle sun</span>
+    name, SUN_SIDES = "horizon_tri", [3]
+
+class MoireWide(Moire):           <span class="c"># wider ring spacing: bolder, slower fringes</span>
+    name, SP = "moire_wide", 28.0
+
+class ScopeSharp(Scope):          <span class="c"># more lobes: a spikier trace</span>
+    name, LOBES = "scope_sharp", [(7, 14, 42)]
+
+class GeoSquares(Geometric):      <span class="c"># geometric, but always squares</span>
+    name, SIDES = "geo_squares", [4]
+
+class BranchesDuo(Branches):      <span class="c"># two mirrored trees, longer limbs</span>
+    name, ARMS, RATIO = "branches_duo", [2], 0.74</code></pre>
+<div class="grid g3">
+  <figure><img src="{{img:variant_TunnelMono.png}}" alt=""><figcaption><b>TunnelMono</b></figcaption></figure>
+  <figure><img src="{{img:variant_TunnelDense.png}}" alt=""><figcaption><b>TunnelDense</b></figcaption></figure>
+  <figure><img src="{{img:variant_HorizonTri.png}}" alt=""><figcaption><b>HorizonTri</b></figcaption></figure>
+  <figure><img src="{{img:variant_MoireWide.png}}" alt=""><figcaption><b>MoireWide</b></figcaption></figure>
+  <figure><img src="{{img:variant_ScopeSharp.png}}" alt=""><figcaption><b>ScopeSharp</b></figcaption></figure>
+  <figure><img src="{{img:variant_GeoSquares.png}}" alt=""><figcaption><b>GeoSquares</b></figcaption></figure>
+  <figure><img src="{{img:variant_BranchesDuo.png}}" alt=""><figcaption><b>BranchesDuo</b></figcaption></figure>
+</div>
+<table>
+<thead><tr><th>Style</th><th>Attributes you can change</th></tr></thead>
+<tr><td><code>tunnel</code></td><td><code>SEQ</code> side sequence, <code>SP</code> layer spacing, <code>R0</code> inner radius, <code>NL</code> layer count, <code>RING</code> tick-ring radius, <code>red_every</code></td></tr>
+<tr><td><code>geometric</code>, <code>atom</code></td><td><code>SIDES</code> per phrase, <code>LISS</code> Lissajous ratios, <code>max_layers</code>, <code>orbiters</code></td></tr>
+<tr><td><code>horizon</code></td><td><code>SUN_SIDES</code> per phrase, <code>H_CAM</code> camera height</td></tr>
+<tr><td><code>scope</code></td><td><code>LOBES</code> per phrase, <code>R0</code> base radius</td></tr>
+<tr><td><code>field</code></td><td><code>SP</code> lattice spacing</td></tr>
+<tr><td><code>sphere</code></td><td><code>N</code> points per ring (smoothness)</td></tr>
+<tr><td><code>moire</code></td><td><code>SP</code> ring spacing</td></tr>
+<tr><td><code>branches</code></td><td><code>ARMS</code> per phrase, <code>RATIO</code> child/parent length, <code>L0</code> trunk length</td></tr>
+<tr><td><code>sierpinski</code></td><td><code>red_every</code> (0 for no red levels)</td></tr>
+<tr><td>all</td><td><code>peak_threshold</code>: the intensity above which a section counts as a peak (default 0.72)</td></tr>
+</table>
+
+<!-- ===================================================================== -->
+<h2 id="combine"><span class="num">08</span>Combining styles in one video</h2>
+
+<p><code>--style</code> accepts more than one style name. There are two ways to combine them, and you can mix the two: <b>layers</b> draw several styles in the same frame, and <b>sequences</b> switch from one style to the next over the course of the track. Both work with <code>video</code> and <code>stills</code>, so you can check a combination with stills first.</p>
+
+<h3>Layers: <code>+</code></h3>
+<p>Join styles with <code>+</code>. Add <code>@opacity</code> (0–1) to dim a layer. The first style is the base, and each further layer is blended on top with <b>screen</b>, so lines brighten where they cross and never hide each other. <code>--blend add</code> is punchier, and <code>--blend over</code> lets upper layers cover lower ones.</p>
+<pre><code>kickframe video track.mp3 --style "tunnel@0.3+scope" -o a.mp4           <span class="c"># dimmed tunnel behind a bright scope</span>
+kickframe video track.mp3 --style "horizon+sphere@0.9" -o b.mp4         <span class="c"># a globe rising over the floor</span>
+kickframe video track.mp3 --style "sphere+field@0.6" -o c.mp4           <span class="c"># globe on a lattice that waves on the kick</span>
+kickframe video track.mp3 --style "sierpinski@0.45+branches" -o d.mp4   <span class="c"># fractal tree over the endless zoom</span></code></pre>
+<div class="grid g2">
+  <figure><img src="{{img:combo_tunnel-0.3-scope_0100.10s.png}}" alt=""><figcaption><b>tunnel@0.3+scope</b></figcaption></figure>
+  <figure><img src="{{img:combo_horizon-sphere-0.9_0100.10s.png}}" alt=""><figcaption><b>horizon+sphere@0.9</b></figcaption></figure>
+  <figure><img src="{{img:combo_sphere-field-0.6_0100.10s.png}}" alt=""><figcaption><b>sphere+field@0.6</b></figcaption></figure>
+  <figure><img src="{{img:combo_sierpinski-0.45-branches_0100.10s.png}}" alt=""><figcaption><b>sierpinski@0.45+branches</b></figcaption></figure>
+</div>
+<div class="note"><b>Tip.</b> Layers work best with contrast. Pair a busy, full-screen style at low opacity (<code>tunnel</code>, <code>sierpinski</code>, <code>field</code>, <code>moire</code>, <code>horizon</code>) with a clear central shape at full opacity (<code>scope</code>, <code>sphere</code>, <code>branches</code>, <code>bold</code>). Two dense styles at full strength blur into each other: in <code>tunnel+scope</code>, for example, the scope trace gets lost in the tunnel's lines.</div>
+
+<h3>Sequences: <code>,</code></h3>
+<p>Separate styles with commas to switch between them. Each item in the list can be a layered combination. <code>--switch</code> decides when to change, and the list repeats if the track has more sections than items.</p>
+<table>
+<thead><tr><th><code>--switch</code></th><th>Changes style</th></tr></thead>
+<tr><td><code>32</code> (default), or any N</td><td>Every N bars, on the bar line</td></tr>
+<tr><td><code>drops</code></td><td>Each time the kick returns after a breakdown, so every drop gets a new look</td></tr>
+<tr><td><code>sections</code></td><td>Whenever the kick stops or returns, so breakdowns and grooves alternate between items</td></tr>
+</table>
+<pre><code>kickframe video track.mp3 --style tunnel,sphere,branches,moire --switch 16 -o seq.mp4
+kickframe video track.mp3 --style "tunnel,sierpinski+field@0.4" --switch drops -o drops.mp4
+kickframe video track.mp3 --style geometric,subtle --switch sections -o sections.mp4</code></pre>
+<p>Here is the first command on the synthetic arrangement, with one frame from each 16-bar section:</p>
+<div class="grid g4">
+  <figure><img src="{{img:seq_tunnel-sphere-branches-moire_0014.20s.png}}" alt=""><figcaption><b>bars 1–16</b> · tunnel</figcaption></figure>
+  <figure><img src="{{img:seq_tunnel-sphere-branches-moire_0042.30s.png}}" alt=""><figcaption><b>17–32</b> · sphere</figcaption></figure>
+  <figure><img src="{{img:seq_tunnel-sphere-branches-moire_0070.50s.png}}" alt=""><figcaption><b>33–48</b> · branches</figcaption></figure>
+  <figure><img src="{{img:seq_tunnel-sphere-branches-moire_0100.10s.png}}" alt=""><figcaption><b>49–64</b> · moire</figcaption></figure>
+</div>
+
+<h3>Transitions</h3>
+<p>With <code>--transition fade</code> (the default), the next style crossfades in over <code>--fade-beats</code> beats (default 4, one bar). The fade <i>finishes</i> on the downbeat, so a drop lands on the new look. <code>--transition cut</code> switches hard on the downbeat instead. These five frames run from just before to just after the bar-17 switch from <code>tunnel</code> to <code>sphere</code>:</p>
+<div class="grid" style="grid-template-columns:repeat(5,1fr)">
+  <figure><img src="{{img:xfade_tunnel-sphere_0026.30s.png}}" alt=""><figcaption><b>−1 bar</b></figcaption></figure>
+  <figure><img src="{{img:xfade_tunnel-sphere_0027.00s.png}}" alt=""><figcaption><b>−¾</b></figcaption></figure>
+  <figure><img src="{{img:xfade_tunnel-sphere_0027.50s.png}}" alt=""><figcaption><b>−½</b></figcaption></figure>
+  <figure><img src="{{img:xfade_tunnel-sphere_0027.90s.png}}" alt=""><figcaption><b>−¼</b></figcaption></figure>
+  <figure><img src="{{img:xfade_tunnel-sphere_0028.40s.png}}" alt=""><figcaption><b>downbeat</b></figcaption></figure>
+</div>
+
+<h3>Timeline: full control</h3>
+<p>To choose the exact moment of every change, use <code>--timeline</code>. It takes comma-separated <code>WHEN=STYLE</code> entries, and when you use it, <code>--style</code> is ignored. WHEN can be:</p>
+<ul>
+<li>seconds, such as <code>288</code></li>
+<li><code>m:ss</code>, such as <code>4:48</code>, or <code>h:mm:ss</code></li>
+<li><code>bN</code> for bar N, counted the same way as the HUD, such as <code>b129</code></li>
+</ul>
+<p>Times snap to the nearest bar line, so switches always land on a downbeat. The first entry covers everything before the second, wherever it starts.</p>
+<pre><code>kickframe video track.mp3 -o set.mp4 --with-audio --workdir work_set \
+  --timeline "0=subtle, 1:52=tunnel, b129=sphere+scope@0.5, 9:30=geometric, 12:40=sierpinski@0.4+branches"</code></pre>
+<p>A good way to build a timeline is to run <code>kickframe analyze</code> to see where the breakdowns and drops fall, then check each switch point with <code>stills --timeline … --at</code> before you render.</p>
+
+<h3>Notes</h3>
+<ul>
+<li>Combinations render without the HUD unless you pass <code>--hud</code>. When it's on, it shows the name of the current item.</li>
+<li>A combination takes about the sum of its parts to render, plus both items during a crossfade. Use the drawing-cost table in section 11 to estimate.</li>
+<li>Stills of a combination are named after the spec, for example <code>still_tunnel-0.3-scope_0100.00s.png</code>, or <code>still_timeline_…</code> for a timeline.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h2 id="covers"><span class="num">09</span>Cover art</h2>
+
+<p><code>kickframe cover KIND -o FILE.png</code> draws a square cover in the same visual language as the videos. The default size is 3000×3000, which is what streaming platforms ask for. Change it with <code>--size</code>, for example <code>--size 1000</code> for a quick look. The geometry is resolution-independent, so every size shows the same composition.</p>
+
+<div class="grid g3">
+  <figure><img src="{{img:cover_ngons.png}}" alt=""><figcaption><b>ngons</b> · defaults</figcaption></figure>
+  <figure><img src="{{img:cover_atom.png}}" alt=""><figcaption><b>atom</b> · defaults</figcaption></figure>
+  <figure><img src="{{img:cover_lissajous.png}}" alt=""><figcaption><b>lissajous</b> · defaults</figcaption></figure>
+  <figure><img src="{{img:cover_ripple.png}}" alt=""><figcaption><b>ripple</b> · defaults</figcaption></figure>
+  <figure><img src="{{img:cover_tree.png}}" alt=""><figcaption><b>tree</b> · defaults (fractal)</figcaption></figure>
+  <figure><img src="{{img:cover_sierpinski.png}}" alt=""><figcaption><b>sierpinski</b> · defaults (fractal)</figcaption></figure>
+</div>
+
+<h3>Title and subtitle</h3>
+<p>Add text in the bottom-left corner with <code>--title</code> and <code>--subtitle</code>. Choose a font family with <code>--font</code> (default <code>monospace</code>; any installed font name works).</p>
+<pre><code>kickframe cover ngons -o cover_title.png --title BERLIN_1 --subtitle "136 BPM"</code></pre>
+<figure style="max-width:460px"><img src="{{img:cover_ngons_title.png}}" alt=""><figcaption><b>ngons</b> with title and subtitle</figcaption></figure>
+
+<h3>Parameters</h3>
+<p>Each cover kind takes parameters through <code>--param KEY=VALUE</code>, which you can repeat. Values are read as Python literals, so numbers and tuples work. Quote tuples in the shell: <code>--param "sides=(3,4,6,8)"</code>.</p>
+<table>
+<thead><tr><th>Kind</th><th>Parameter</th><th>Default</th><th>Effect</th></tr></thead>
+<tr><td rowspan="5"><code>ngons</code></td><td><code>layers</code></td><td>40</td><td>Number of nested polygons</td></tr>
+<tr><td><code>sides</code></td><td>(3,4,5,6,8)</td><td>Side counts from the centre outward, each used for an equal share of the layers</td></tr>
+<tr><td><code>twist</code></td><td>0.075</td><td>Rotation per layer in radians; higher values give a tighter spiral</td></tr>
+<tr><td><code>spacing</code></td><td>30</td><td>Radius step between layers</td></tr>
+<tr><td><code>red_layer</code></td><td>31</td><td>Index of the red layer (use a value ≥ <code>layers</code> for none)</td></tr>
+<tr><td rowspan="3"><code>atom</code></td><td><code>shells</code></td><td>6</td><td>Number of elliptical electron orbits</td></tr>
+<tr><td><code>sides</code></td><td>6</td><td>Side count of the background polygons</td></tr>
+<tr><td><code>red_shell</code></td><td>2</td><td>Which electron is red</td></tr>
+<tr><td rowspan="2"><code>lissajous</code></td><td><code>a</code>, <code>b</code></td><td>5, 4</td><td>Frequency ratio of the main figure</td></tr>
+<tr><td><code>inner</code></td><td>(3,2)</td><td>Frequency ratio of the inner red figure</td></tr>
+<tr><td rowspan="2"><code>ripple</code></td><td><code>rings</code></td><td>14</td><td>Concentric rings (they grow geometrically)</td></tr>
+<tr><td><code>squares</code></td><td>6</td><td>Rotated squares around the red centre</td></tr>
+<tr><td rowspan="5"><code>tree</code></td><td><code>arms</code></td><td>6</td><td>Number of trunks from the centre</td></tr>
+<tr><td><code>depth</code></td><td>10</td><td>Generations of forking (each doubles the branches; 12+ gets very dense)</td></tr>
+<tr><td><code>spread</code></td><td>0.42</td><td>Branch half-angle in radians; larger values give a bushier, curling tree</td></tr>
+<tr><td><code>ratio</code></td><td>0.7</td><td>Child length / parent length</td></tr>
+<tr><td><code>red_level</code></td><td>7</td><td>Generation drawn in red (use a value ≥ <code>depth</code> for none)</td></tr>
+<tr><td rowspan="4"><code>sierpinski</code></td><td><code>depth</code></td><td>7</td><td>Levels of subdivision</td></tr>
+<tr><td><code>red_every</code></td><td>3</td><td>Every Nth level is red (0 for none)</td></tr>
+<tr><td><code>hexagon</code></td><td>True</td><td>Six triangles in a hexagon; <code>False</code> draws one large triangle</td></tr>
+<tr><td><code>rotation</code></td><td>0.0</td><td>Rotation in radians</td></tr>
+</table>
+
+<pre><code>kickframe cover ngons      -o a.png --param layers=50 --param "sides=(3,4,6,8)" --param twist=0.1
+kickframe cover atom       -o b.png --param shells=4 --param sides=8
+kickframe cover lissajous  -o c.png --param a=7 --param b=6 --param "inner=(5,4)"
+kickframe cover ripple     -o d.png --param rings=18
+kickframe cover tree       -o e.png --param arms=3 --param spread=0.6 --param depth=11 --param red_level=10
+kickframe cover sierpinski -o f.png --param hexagon=False --param depth=8 --param red_every=0
+kickframe cover tree       -o g.png --title ROOTS --subtitle "132 BPM"</code></pre>
+<div class="grid g4">
+  <figure><img src="{{img:cover_ngons_var.png}}" alt=""><figcaption><b>a.png</b></figcaption></figure>
+  <figure><img src="{{img:cover_atom_var.png}}" alt=""><figcaption><b>b.png</b></figcaption></figure>
+  <figure><img src="{{img:cover_lissajous_var.png}}" alt=""><figcaption><b>c.png</b></figcaption></figure>
+  <figure><img src="{{img:cover_ripple_var.png}}" alt=""><figcaption><b>d.png</b></figcaption></figure>
+</div>
+<div class="grid g3">
+  <figure><img src="{{img:cover_tree_var.png}}" alt=""><figcaption><b>e.png</b></figcaption></figure>
+  <figure><img src="{{img:cover_sierpinski_var.png}}" alt=""><figcaption><b>f.png</b></figcaption></figure>
+  <figure><img src="{{img:cover_tree_title.png}}" alt=""><figcaption><b>g.png</b></figcaption></figure>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="reference"><span class="num">10</span>Command reference</h2>
+
+<p>Run <code>kickframe COMMAND --help</code> for the same list on the command line.</p>
+
+<h3><code>kickframe video</code>: render a video</h3>
+<pre><code>kickframe video [AUDIO] -o OUT.mp4 [options]</code></pre>
+<table>
+<thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
+<tr><td><code>-o, --out</code></td><td>required</td><td>Output MP4 file</td></tr>
+<tr><td><code>--style</code></td><td>tunnel</td><td><code>tunnel</code>, <code>atom</code>, <code>geometric</code>, <code>bold</code>, <code>subtle</code>, <code>horizon</code>, <code>scope</code>, <code>field</code>, <code>sphere</code>, <code>moire</code>, <code>branches</code> or <code>sierpinski</code>, or a combination (section 8)</td></tr>
+<tr><td><code>--size</code></td><td>1080p</td><td><code>1080p</code>, <code>4k</code>, <code>720p</code>, <code>vertical</code>, <code>square</code> or <code>WxH</code></td></tr>
+<tr><td><code>--start</code></td><td>0</td><td>Start time in seconds</td></tr>
+<tr><td><code>--duration</code></td><td>to the end</td><td>Length in seconds</td></tr>
+<tr><td><code>--with-audio</code></td><td>off</td><td>Add the track to the video (AAC, 320 kb/s), cut to the same range</td></tr>
+<tr><td><code>--switch</code></td><td>32</td><td>For a sequence: every N bars, <code>drops</code> or <code>sections</code></td></tr>
+<tr><td><code>--timeline</code></td><td>none</td><td><code>WHEN=STYLE, …</code> with seconds, <code>m:ss</code> or <code>bN</code></td></tr>
+<tr><td><code>--transition</code></td><td>fade</td><td><code>fade</code> (lands on the downbeat) or <code>cut</code></td></tr>
+<tr><td><code>--fade-beats</code></td><td>4</td><td>Crossfade length in beats</td></tr>
+<tr><td><code>--blend</code></td><td>screen</td><td>How layers combine: <code>screen</code>, <code>add</code> or <code>over</code></td></tr>
+<tr><td><code>--hud / --no-hud</code></td><td>per style</td><td>Show or hide the bar counter and labels (off for combinations)</td></tr>
+<tr><td><code>--fps</code></td><td>30</td><td>Frame rate (the analysis is cached per frame rate)</td></tr>
+<tr><td><code>--crf</code></td><td>24</td><td>Quality, 18–30; lower means better quality and bigger files</td></tr>
+<tr><td><code>--preset</code></td><td>veryfast</td><td>x264 preset; slower presets give smaller files</td></tr>
+<tr><td><code>--jobs</code></td><td>all cores</td><td>Parallel render processes</td></tr>
+<tr><td><code>--workdir</code></td><td>temporary</td><td>Keep the 60-second chunks here; re-running resumes an interrupted render</td></tr>
+</table>
+
+<h3><code>kickframe stills</code>: render single frames</h3>
+<pre><code>kickframe stills [AUDIO] --at T1 T2 ... [--prefix still] [options]</code></pre>
+<p>Writes <code>PREFIX_STYLE_TTTT.TTs.png</code> for each time in seconds. It accepts the same <code>--style</code>, <code>--size</code>, <code>--hud</code> and analysis options as <code>video</code>.</p>
+
+<h3><code>kickframe cover</code>: cover art</h3>
+<pre><code>kickframe cover {ngons,atom,lissajous,ripple,tree,sierpinski} -o OUT.png [--size 3000] [--title T] [--subtitle S] [--font F] [--param K=V ...]</code></pre>
+
+<h3><code>kickframe analyze</code>: analyse only</h3>
+<pre><code>kickframe analyze AUDIO [--bpm BPM] [--fps 30] [--controls FILE]</code></pre>
+<p>Always re-analyses and overwrites the cache file.</p>
+
+<h3><code>kickframe styles</code></h3>
+<p>Lists the video styles and cover kinds.</p>
+
+<h3>Analysis options (shared by <code>video</code> and <code>stills</code>)</h3>
+<table>
+<thead><tr><th>Option</th><th>Description</th></tr></thead>
+<tr><td><code>AUDIO</code></td><td>Any format ffmpeg can decode: mp3, wav, flac, aiff, m4a…</td></tr>
+<tr><td><code>--bpm</code></td><td>Nominal tempo hint. Detected if omitted; always fine-tuned.</td></tr>
+<tr><td><code>--controls FILE</code></td><td>Use or write this analysis file instead of the default name</td></tr>
+<tr><td><code>--reanalyze</code></td><td>Ignore the cached analysis and run it again</td></tr>
+<tr><td><code>--synthetic</code></td><td>No audio: generate a beat grid at <code>--bpm</code> (default 136)</td></tr>
+<tr><td><code>--bars</code></td><td>Length of the synthetic arrangement (default 32)</td></tr>
+</table>
+
+<!-- ===================================================================== -->
+<h2 id="rendering"><span class="num">11</span>Render time, file size and resuming</h2>
+
+<p>Kickframe splits the video into 60-second chunks and renders them in parallel, one process per core, each piping frames to its own ffmpeg encoder. The chunks are then joined without re-encoding, and the audio is added if you asked for it.</p>
+
+<p>Dense line art that moves every frame compresses poorly, so the files are large. Rough figures for a 17-minute track at 1080p30:</p>
+<table>
+<thead><tr><th>Style</th><th>File size at <code>--crf 24</code></th><th>Render time (2 cores)</th></tr></thead>
+<tr><td><code>subtle</code></td><td>~50 MB</td><td>~10 min</td></tr>
+<tr><td><code>bold</code></td><td>~500 MB</td><td>~10 min</td></tr>
+<tr><td><code>atom</code> / <code>geometric</code></td><td>~500 MB</td><td>~15 min</td></tr>
+<tr><td><code>tunnel</code></td><td>~1.5 GB</td><td>~25 min</td></tr>
+</table>
+<p>The newer styles haven't been measured on a full track yet. To compare them, here is the drawing cost of one 1080p frame on one core, measured on the synthetic arrangement. Render time scales with it, divided by the number of cores. <code>moire</code> is also the densest picture and will likely produce the largest files, so raise <code>--crf</code> for it.</p>
+<table>
+<thead><tr><th>Style</th><th>ms / frame</th><th>Style</th><th>ms / frame</th></tr></thead>
+<tr><td><code>bold</code></td><td>11</td><td><code>subtle</code></td><td>28</td></tr>
+<tr><td><code>geometric</code></td><td>19</td><td><code>field</code></td><td>34</td></tr>
+<tr><td><code>atom</code></td><td>21</td><td><code>horizon</code></td><td>36</td></tr>
+<tr><td><code>sphere</code></td><td>26</td><td><code>tunnel</code></td><td>49</td></tr>
+<tr><td><code>scope</code></td><td>28</td><td><code>branches</code></td><td>41</td></tr>
+<tr><td></td><td></td><td><code>sierpinski</code></td><td>77</td></tr>
+<tr><td></td><td></td><td><code>moire</code></td><td>108</td></tr>
+</table>
+<ul>
+<li><b>Smaller files:</b> raise <code>--crf</code> to 27–28. Above about 30 the thin red lines start to smear.</li>
+<li><b>Smaller still:</b> <code>--preset medium</code> gives files about 15% smaller for about twice the encode time.</li>
+<li><b>Uploading:</b> YouTube re-encodes anyway, so uploading the big file is fine.</li>
+<li><b>More speed:</b> more cores help almost linearly. Use <code>--jobs</code> to leave some free for other work.</li>
+<li><b>Resuming:</b> with <code>--workdir DIR</code>, finished chunks are kept. If a render is interrupted, run the exact same command again and it continues. A chunk is only saved once it is complete, so a stopped render never leaves a broken one behind.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h2 id="extend"><span class="num">12</span>Writing your own style</h2>
+
+<p>A style is a Python class in <code>kickframe/styles.py</code> that subclasses <code>Style</code> and implements <code>draw(self, ctx, s)</code>. <code>ctx</code> is a Cairo context and <code>s</code> holds the values for the current frame. Here is a complete, working example:</p>
+<pre><code>class Pulse(Style):
+    """A single hexagon that pulses on every kick."""   <span class="c"># first line shows in `kickframe styles`</span>
+    name = "pulse"
+
+    def prepare(self):
+        <span class="c"># running state: integrate over ALL frames here, never inside draw()</span>
+        self.rot = np.cumsum(0.002 + 0.004 * self.c.I)
+
+    def draw(self, ctx, s):
+        rot = self.rot[s.f]
+        self.layer_grid(ctx, s)
+        self.layer_ripples(ctx, s)
+        for i in range(3):
+            r = (180 + 90 * i) * (1 + 0.15 * s.kick)
+            red = s.peak and s.bib == 0 and i == 2          <span class="c"># red outer ring on peak downbeats</span>
+            ctx.set_line_width(1.5 + 2 * s.kick + s.bass)
+            ctx.set_source_rgba(*(RED if red else INK), 0.3 + 0.6 * s.kick)
+            poly(ctx, 6, r, rot * (1 if i % 2 == 0 else -1), self.CX, self.CY)
+            ctx.stroke()
+        self.layer_ticks(ctx, s, rot)
+        self.layer_hud(ctx, s)
+
+STYLES = {cls.name: cls for cls in (Bold, Geometric, Atom, Tunnel, Subtle,
+                                    Horizon, Scope, Field, Sphere, Moire, Pulse)}</code></pre>
+<figure><img src="{{img:custom_pulse.png}}" alt=""><figcaption><b>pulse</b>: the example above, rendered at a peak downbeat</figcaption></figure>
+
+<h3>Canvas</h3>
+<p>Draw on a canvas 1080 units tall, centred at <code>(self.CX, self.CY)</code>. Its width is <code>self.VW</code> and follows the aspect ratio. The same code then renders at every <code>--size</code>.</p>
+
+<h3>Frame state <code>s</code></h3>
+<table>
+<thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+<tr><td><code>s.I</code></td><td>Intensity 0–1</td></tr>
+<tr><td><code>s.K</code></td><td>Kick present 0–1 (0 in breakdowns)</td></tr>
+<tr><td><code>s.kick</code></td><td>Kick pulse: 1 on the beat, decaying quickly</td></tr>
+<tr><td><code>s.bass</code>, <code>s.mid</code>, <code>s.hat</code></td><td>Band levels 0–1</td></tr>
+<tr><td><code>s.flash</code></td><td>Re-entry flash 0–1</td></tr>
+<tr><td><code>s.beat</code>, <code>s.ph</code></td><td>Continuous beat position; phase within the beat 0–1</td></tr>
+<tr><td><code>s.bib</code>, <code>s.bar</code></td><td>Beat in the bar (0–3), bar number</td></tr>
+<tr><td><code>s.peak</code>, <code>s.pk</code></td><td>In a peak (bool); how far into the peak (0–1)</td></tr>
+<tr><td><code>s.t</code>, <code>s.f</code></td><td>Time in seconds, frame index</td></tr>
+</table>
+
+<h3>Shared layers</h3>
+<p><code>layer_grid</code>, <code>layer_ripples</code>, <code>layer_lissajous</code>, <code>layer_rose</code>, <code>layer_ticks</code>, <code>layer_brackets</code>, <code>layer_sweep</code>, <code>layer_flash</code> and <code>layer_hud</code>. Helpers include <code>poly(ctx, n, r, rot, cx, cy)</code> for regular polygons and <code>stepped_rotation(controls)</code> for the 22.5°-per-beat motion.</p>
+
+<h3>Rules that keep renders correct</h3>
+<ul>
+<li><b>Put running state in <code>prepare()</code>.</b> Anything that accumulates over time, such as rotation, flow or drift, must be computed there over all frames. Chunks render in separate processes, so state kept inside <code>draw()</code> would jump at every 60-second boundary.</li>
+<li><b>Keep <code>draw()</code> deterministic.</b> It should depend only on the frame index and precomputed arrays.</li>
+<li><b>Stay in the visual language.</b> Use a near-black background (<code>BG</code>), off-white lines (<code>INK</code>) and a single <code>RED</code> accent. Keep lines thin and avoid gradients apart from vignettes.</li>
+<li><b>Register the style.</b> Give it a docstring, add it to <code>STYLES</code> and add a row to the README table.</li>
+</ul>
+<p>To try a style quickly with no track: <code>kickframe video --synthetic --bpm 136 --bars 4 --style pulse --size 720p -o test.mp4</code>.</p>
+<p>New cover kinds work the same way. Write a function <code>mycover(cv, **params)</code> in <code>kickframe/covers.py</code> that draws on a 3000-unit square, and add it to <code>COVERS</code>. Its keyword arguments become its <code>--param</code> options automatically.</p>
+
+<!-- ===================================================================== -->
+<h2 id="troubleshooting"><span class="num">13</span>Troubleshooting</h2>
+<table>
+<thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
+<tr><td><code>FileNotFoundError</code> / "cannot find the file specified" when analysing or rendering</td><td>ffmpeg isn't on <code>PATH</code>. Install it (section 1) and open a new terminal.</td></tr>
+<tr><td><code>give an audio file, or --synthetic</code></td><td>Pass a track path, or use <code>--synthetic</code>.</td></tr>
+<tr><td>Visuals are off the beat, or the tempo is half or double</td><td>Give the nominal tempo: <code>--bpm 136 --reanalyze</code>.</td></tr>
+<tr><td>Changes to the audio aren't picked up</td><td>The analysis is cached. Add <code>--reanalyze</code> or delete the <code>.controls.npz</code> file.</td></tr>
+<tr><td>Red downbeats land on the wrong beat</td><td>Beat "1" is taken from the first kick re-entry after a break. Tracks without a break count from the start of the grid.</td></tr>
+<tr><td>Render interrupted</td><td>If you used <code>--workdir</code>, run the same command again and it resumes.</td></tr>
+<tr><td>File too large</td><td>Raise <code>--crf</code> to 27–28, use <code>--preset medium</code> or choose <code>subtle</code>.</td></tr>
+<tr><td>Computer is sluggish while rendering</td><td>Lower <code>--jobs</code>.</td></tr>
+</table>
+<p>Kickframe writes its analysis cache to the folder you run it from, and its renders wherever <code>-o</code> points. The repository's <code>.gitignore</code> keeps audio, renders, <code>*.controls.npz</code> and <code>work*/</code> folders out of git.</p>
+
+</main>
+</body>
+</html>
